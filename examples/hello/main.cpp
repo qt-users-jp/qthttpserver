@@ -49,6 +49,7 @@ HttpServer::HttpServer(QObject *parent)
 
 void HttpServer::hello(QHttpRequest *request, QHttpReply *reply)
 {
+    Q_UNUSED(request)
     reply->setStatus(200);
     reply->setRawHeader("Content-Type", "text/html; charset=utf-8;");
     reply->write("<html>\r\n"
@@ -67,7 +68,7 @@ int main(int argc, char *argv[])
     QCoreApplication app(argc, argv);
 
     HttpServer server;
-    if (!server.listen(QHostAddress::Any, 9100)) {
+    if (!server.listen(QHostAddress::Any, 8080)) {
         qWarning() << "failed to listen.";
         return -1;
     }

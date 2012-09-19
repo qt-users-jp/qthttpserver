@@ -76,7 +76,7 @@ void QHttpConnection::Private::requestReady()
 //        qDebug() << request->rawHeader("Connection") << keepAlive;
         if (request->rawHeader("Connection") == QByteArray("Keep-Alive").toLower()) {
             if (keepAlive > 0) {
-                reply->setRawHeader("Keep-Alive", QString("timeout=1, max=%1").arg(keepAlive--).toUtf8());
+                reply->setRawHeader("Keep-Alive", QString::fromUtf8("timeout=1, max=%1").arg(keepAlive--).toUtf8());
                 reply->setRawHeader("Connection", "Keep-Alive");
                 request = new QHttpRequest(q);
                 connect(request, SIGNAL(ready()), this, SLOT(requestReady()));

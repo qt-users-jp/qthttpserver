@@ -94,8 +94,8 @@ void QHttpRequest::Private::readyRead()
             }
 
             QByteArray path = array.takeFirst();
-            url = QUrl(path);
-            url.setScheme("http");
+            url = QUrl(QString::fromUtf8(path));
+            url.setScheme(QLatin1String("http"));
 
             QByteArray http = array.takeFirst();
             if (http != "HTTP/1.1" && http != "HTTP/1.0") {
@@ -131,10 +131,10 @@ void QHttpRequest::Private::readyRead()
                 if (name == "Host") {
                     int colon = value.indexOf(':');
                     if (colon > -1) {
-                        url.setHost(value.left(colon));
+                        url.setHost(QString::fromUtf8(value.left(colon)));
                         url.setPort(value.mid(colon + 1).toUInt());
                     } else {
-                        url.setHost(value);
+                        url.setHost(QString::fromUtf8(value));
                         url.setPort(80);
                     }
                 }

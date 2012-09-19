@@ -125,7 +125,7 @@ void QHttpReply::Private::close()
         connection->write("\r\n");
     }
 
-    connection->write(QString("Content-Length: %1\r\n").arg(data.length()).toLatin1());
+    connection->write(QString::fromUtf8("Content-Length: %1\r\n").arg(data.length()).toLatin1());
     connection->write("\r\n");
     connection->write(data);
     q->deleteLater();
