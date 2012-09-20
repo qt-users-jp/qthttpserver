@@ -87,6 +87,8 @@ void QHttpRequest::Private::readyRead()
                 this->method = Get;
             } else if (method == "POST") {
                 this->method = Post;
+            } else if (method == "HEAD") {
+                this->method = Post;
             } else {
                 qWarning() << method << "is not supported.";
                 socket->disconnectFromHost();
