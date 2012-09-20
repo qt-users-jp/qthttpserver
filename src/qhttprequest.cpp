@@ -54,7 +54,7 @@ private:
 public:
     QHttpConnection *connection;
     ReadState state;
-    Method method;
+    QByteArray method;
     QUrl url;
     QHash<QByteArray, QByteArray> rawHeaders;
 };
@@ -64,7 +64,6 @@ QHttpRequest::Private::Private(QHttpConnection *c, QHttpRequest *parent)
     , q(parent)
     , connection(c)
     , state(ReadUrl)
-    , method(Unknown)
 {
     connect(connection, SIGNAL(readyRead()), this, SLOT(readyRead()));
     connect(connection, SIGNAL(disconnected()), this, SLOT(disconnected()));
@@ -82,16 +81,7 @@ void QHttpRequest::Private::readyRead()
             line = line.left(line.length() - 2);
             QList<QByteArray> array = line.split(' ');
 
-            QByteArray method = array.takeFirst();
-            if (method == "GET") {
-                this->method = Get;
-            } else if (method == "POST") {
-                this->method = Post;
-            } else {
-                qWarning() << method << "is not supported.";
-                socket->disconnectFromHost();
-                return;
-            }
+            method = array.takeFirst();
 
             QByteArray path = array.takeFirst();
             url = QUrl(QString::fromUtf8(path));
@@ -171,7 +161,7 @@ QHttpRequest::~QHttpRequest()
     delete d;
 }
 
-QHttpRequest::Method QHttpRequest::method() const
+const QByteArray &QHttpRequest::method() const
 {
     return d->method;
 }

@@ -38,16 +38,10 @@ class Q_HTTPSERVER_EXPORT QHttpRequest : public QIODevice
 {
     Q_OBJECT
 public:
-    enum Method {
-        Unknown,
-        Get,
-        Post
-    };
-
     explicit QHttpRequest(QHttpConnection *parent);
     ~QHttpRequest();
     
-    Method method() const;
+    const QByteArray &method() const;
     bool hasRawHeader(const QByteArray &headerName) const;
     QByteArray rawHeader(const QByteArray &headerName) const;
     QList<QByteArray> rawHeaderList() const;
