@@ -42,6 +42,18 @@ public:
     explicit QHttpServer(QObject *parent = 0);
 
     bool listen(const QHostAddress &address = QHostAddress::Any, quint16 port = 0);
+    void close();
+
+    bool isListening() const;
+
+    void setMaxPendingConnections(int numConnections);
+    int maxPendingConnections() const;
+
+    quint16 serverPort() const;
+    QHostAddress serverAddress() const;
+
+    QAbstractSocket::SocketError serverError() const;
+    QString errorString() const;
 
 signals:
     void incomingConnection(QHttpRequest *request, QHttpReply *reply);
