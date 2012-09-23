@@ -43,6 +43,8 @@ public:
 #endif
     ~QHttpConnection();
 
+    const QHttpRequest *requestFor(QHttpReply *reply);
+
 signals:
     void ready(QHttpRequest *request, QHttpReply *reply);
 

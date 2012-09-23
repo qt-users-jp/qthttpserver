@@ -29,6 +29,8 @@
 #include "qhttpconnection_p.h"
 #include "qhttprequest.h"
 
+#include <zlib.h>
+
 class QHttpReply::Private : public QObject
 {
     Q_OBJECT
@@ -110,13 +112,48 @@ void QHttpReply::Private::close()
     connection->write(" ");
     connection->write(statusCodes.value(status));
     connection->write("\r\n");
-    //    if (request->hasRawHeader("Accept-Encoding")) {
-//        QList<QByteArray> acceptEncodings = request->rawHeader("Accept-Encoding").split(',');
-//        if (acceptEncodings.contains("deflate")) {
-//            connection->write("Content-Encoding: deflate\r\n");
-//            data = qCompress(data);
-//        }
-//    }
+
+    const QHttpRequest *request = connection->requestFor(q);
+    if (request && request->hasRawHeader("Accept-Encoding")) {
+        QList<QByteArray> acceptEncodings = request->rawHeader("Accept-Encoding").split(',');
+        if (acceptEncodings.contains("deflate")) {
+            z_stream z;
+            z.zalloc = NULL;
+            z.zfree = NULL;
+            z.opaque = NULL;
+
+            if (deflateInit(&z, Z_DEFAULT_COMPRESSION) == Z_OK) {
+//                qDebug() << Q_FUNC_INFO << __LINE__ << data.length();
+                QByteArray newData;
+                unsigned char buf[1024];
+                z.avail_in = data.size();
+                z.next_in = reinterpret_cast<Bytef*>(data.data());
+                z.avail_out = 1024;
+                z.next_out = buf;
+                int ret = Z_OK;
+                while (ret == Z_OK) {
+//                    qDebug() << Q_FUNC_INFO << __LINE__ << z.avail_in << z.avail_out;
+                    ret = deflate(&z, Z_FINISH);
+//                    qDebug() << Q_FUNC_INFO << __LINE__ << z.avail_in << z.avail_out << ret;
+                    if (ret == Z_STREAM_END) {
+                        newData.append((const char*)buf, 1024 - z.avail_out);
+                        connection->write("Content-Encoding: deflate\r\n");
+                        data = newData;
+//                        qDebug() << "END";
+                        break;
+                    } else if (ret != Z_OK) {
+//                        qDebug() << Q_FUNC_INFO << __LINE__ << ret << z.msg;
+                    }
+                    if (z.avail_out == 0) {
+                        newData.append((const char*)buf, 1024);
+                        z.avail_out = 1024;
+                        z.next_out = buf;
+                    }
+                }
+//                qDebug() << Q_FUNC_INFO << __LINE__ << newData.length();
+            }
+        }
+    }
 
     foreach (const QByteArray &rawHeader, rawHeaders.keys()) {
         connection->write(rawHeader);
