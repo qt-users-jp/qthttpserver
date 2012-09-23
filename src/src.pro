@@ -10,3 +10,5 @@ include(src.pri)
 
 PUBLIC_HEADERS = $$HEADERS
 HEADERS += $$PRIVATE_HEADERS
+
+LIBS += -lz

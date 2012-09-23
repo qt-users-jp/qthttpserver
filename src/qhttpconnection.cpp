@@ -123,4 +123,9 @@ QHttpConnection::~QHttpConnection()
 //    qDebug() << d->timer.elapsed();
 }
 
+const QHttpRequest *QHttpConnection::requestFor(QHttpReply *reply)
+{
+    return d->requestMap.value(reply);
+}
+
 #include "qhttpconnection.moc"
