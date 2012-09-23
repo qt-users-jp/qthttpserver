@@ -27,14 +27,14 @@
 #ifndef QHTTPREQUEST_H
 #define QHTTPREQUEST_H
 
-#include <QtCore/QIODevice>
+#include <QtCore/QBuffer>
 #include <QtCore/QVariant>
 
 #include "qthttpserverglobal.h"
 
 class QHttpConnection;
 
-class Q_HTTPSERVER_EXPORT QHttpRequest : public QIODevice
+class Q_HTTPSERVER_EXPORT QHttpRequest : public QBuffer
 {
     Q_OBJECT
 public:
@@ -47,25 +47,8 @@ public:
     QList<QByteArray> rawHeaderList() const;
     QUrl url() const;
 
-    virtual bool atEnd() const;
-    virtual qint64 bytesAvailable() const;
-    virtual qint64 bytesToWrite() const;
-    virtual bool canReadLine() const;
-    virtual void close();
-    virtual bool isSequential() const;
-    virtual qint64 pos() const;
-    virtual bool reset();
-    virtual bool seek(qint64 pos);
-    virtual qint64 size() const;
-    virtual bool	waitForBytesWritten(int msecs);
-    virtual bool	waitForReadyRead(int msecs);
-
 signals:
     void ready();
-
-protected:
-    virtual qint64 readData(char *data, qint64 maxlen);
-    virtual qint64 writeData(const char *data, qint64 len);
 
 private:
     class Private;

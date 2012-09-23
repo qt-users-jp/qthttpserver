@@ -30,7 +30,7 @@
 #include <QtCore/qglobal.h>
 
 #ifndef QT_STATIC
-#  if defined(QT_BUILD_QML_LIB)
+#  if defined(QT_BUILD_HTTPSERVER_LIB)
 #    define Q_HTTPSERVER_EXPORT Q_DECL_EXPORT
 #  else
 #    define Q_HTTPSERVER_EXPORT Q_DECL_IMPORT
