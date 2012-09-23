@@ -57,6 +57,7 @@ public:
     QByteArray method;
     QUrl url;
     QHash<QByteArray, QByteArray> rawHeaders;
+    QByteArray data;
 };
 
 QHttpRequest::Private::Private(QHttpConnection *c, QHttpRequest *parent)
@@ -67,6 +68,7 @@ QHttpRequest::Private::Private(QHttpConnection *c, QHttpRequest *parent)
 {
     connect(connection, SIGNAL(readyRead()), this, SLOT(readyRead()));
     connect(connection, SIGNAL(disconnected()), this, SLOT(disconnected()));
+    q->setBuffer(&data);
     q->open(QIODevice::ReadOnly);
 }
 
@@ -133,7 +135,9 @@ void QHttpRequest::Private::readyRead()
         break;
     case ReadBody:
         if (q->hasRawHeader("Content-Length")) {
-            if (connection->bytesAvailable() >= q->rawHeader("Content-Length").toLongLong()) {
+            int length = q->rawHeader("Content-Length").toLongLong();
+            data.append(connection->read(length - data.length()));
+            if (data.length() == length) {
                 state = ReadDone;
                 emit q->ready();
             }
@@ -146,12 +150,11 @@ void QHttpRequest::Private::readyRead()
 
 void QHttpRequest::Private::disconnected()
 {
-    q->close();
     q->deleteLater();
 }
 
 QHttpRequest::QHttpRequest(QHttpConnection *parent)
-    : QIODevice(parent)
+    : QBuffer(parent)
     , d(new Private(parent, this))
 {
 }
@@ -184,85 +187,6 @@ QList<QByteArray> QHttpRequest::rawHeaderList() const
 QUrl QHttpRequest::url() const
 {
     return d->url;
-}
-
-bool QHttpRequest::atEnd() const
-{
-    if (d->state != Private::ReadDone) return true;
-    return d->connection->atEnd();
-}
-
-qint64 QHttpRequest::bytesAvailable() const
-{
-    if (d->state != Private::ReadDone) return 0;
-    return d->connection->bytesAvailable();
-}
-
-qint64 QHttpRequest::bytesToWrite() const
-{
-    return 0;
-}
-
-bool QHttpRequest::canReadLine() const
-{
-    if (d->state != Private::ReadDone) return false;
-    return d->connection->canReadLine();
-}
-
-void QHttpRequest::close()
-{
-}
-
-bool QHttpRequest::isSequential() const
-{
-    return true;
-}
-
-qint64 QHttpRequest::pos() const
-{
-    return 0;
-}
-
-bool QHttpRequest::reset()
-{
-    return true;
-}
-
-bool QHttpRequest::seek(qint64 pos)
-{
-    Q_UNUSED(pos)
-    return false;
-}
-
-qint64 QHttpRequest::size() const
-{
-    if (d->state != Private::ReadDone) return 0;
-    return bytesAvailable();
-}
-
-bool QHttpRequest::waitForBytesWritten(int msecs)
-{
-    Q_UNUSED(msecs)
-    return false;
-}
-
-bool QHttpRequest::waitForReadyRead(int msecs)
-{
-    if (d->state != Private::ReadDone) return false;
-    return d->connection->waitForReadyRead(msecs);
-}
-
-qint64 QHttpRequest::readData(char *data, qint64 maxlen)
-{
-    if (d->state != Private::ReadDone) return -1;
-    return d->connection->read(data, maxlen);
-}
-
-qint64 QHttpRequest::writeData(const char *data, qint64 len)
-{
-    Q_UNUSED(data)
-    Q_UNUSED(len)
-    return -1;
 }
 
 #include "qhttprequest.moc"
