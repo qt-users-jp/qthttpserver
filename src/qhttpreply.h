@@ -32,6 +32,7 @@
 #include "qthttpserverglobal.h"
 
 class QHttpConnection;
+class QNetworkCookie;
 
 class Q_HTTPSERVER_EXPORT QHttpReply : public QBuffer
 {
@@ -48,6 +49,8 @@ public:
     QByteArray rawHeader(const QByteArray &headerName) const;
     void setRawHeader(const QByteArray &headerName, const QByteArray &value);
     QList<QByteArray> rawHeaderList() const;
+    const QList<QNetworkCookie> &cookies() const;
+    void setCookies(const QList<QNetworkCookie> &cookies);
 
     virtual void close();
 

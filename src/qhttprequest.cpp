@@ -28,6 +28,8 @@
 
 #include <QtCore/QUrl>
 #include <QtCore/QHash>
+#include <QtCore/QStringList>
+#include <QtNetwork/QNetworkCookie>
 
 #include "qhttpconnection_p.h"
 
@@ -57,6 +59,7 @@ public:
     QByteArray method;
     QUrl url;
     QHash<QByteArray, QByteArray> rawHeaders;
+    QList<QNetworkCookie> cookies;
     QByteArray data;
 };
 
@@ -119,7 +122,6 @@ void QHttpRequest::Private::readyRead()
             if (space > 0) {
                 QByteArray name = line.left(space - 1);
                 QByteArray value = line.mid(space + 1);
-                rawHeaders.insert(name.toLower(), value.toLower());
                 if (name == "Host") {
                     int colon = value.indexOf(':');
                     if (colon > -1) {
@@ -129,6 +131,12 @@ void QHttpRequest::Private::readyRead()
                         url.setHost(QString::fromUtf8(value));
                         url.setPort(80);
                     }
+                } else if (name == "Cookie") {
+                    foreach (const QByteArray &c, value.split(';')) {
+                        cookies.append(QNetworkCookie::parseCookies(c));
+                    }
+                } else {
+                    rawHeaders.insert(name.toLower(), value.toLower());
                 }
             }
         }
@@ -182,6 +190,11 @@ QByteArray QHttpRequest::rawHeader(const QByteArray &headerName) const
 QList<QByteArray> QHttpRequest::rawHeaderList() const
 {
     return d->rawHeaders.keys();
+}
+
+QList<QNetworkCookie> QHttpRequest::cookies() const
+{
+    return d->cookies;
 }
 
 QUrl QHttpRequest::url() const

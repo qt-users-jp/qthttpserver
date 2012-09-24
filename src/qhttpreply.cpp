@@ -26,6 +26,8 @@
 
 #include "qhttpreply.h"
 
+#include <QtNetwork/QNetworkCookie>
+
 #include "qhttpconnection_p.h"
 #include "qhttprequest.h"
 
@@ -48,6 +50,7 @@ public:
     QHttpConnection *connection;
     int status;
     QHash<QByteArray, QByteArray> rawHeaders;
+    QList<QNetworkCookie> cookies;
     QByteArray data;
 };
 
@@ -162,6 +165,12 @@ void QHttpReply::Private::close()
         connection->write("\r\n");
     }
 
+    foreach (const QNetworkCookie &cookie, cookies) {
+        connection->write("Set-Cookie: ");
+        connection->write(cookie.toRawForm());
+        connection->write(";\r\n");
+    }
+
     connection->write(QString::fromUtf8("Content-Length: %1\r\n").arg(data.length()).toLatin1());
     connection->write("\r\n");
     connection->write(data);
@@ -212,6 +221,17 @@ void QHttpReply::setRawHeader(const QByteArray &headerName, const QByteArray &va
 QList<QByteArray> QHttpReply::rawHeaderList() const
 {
     return d->rawHeaders.keys();
+}
+
+const QList<QNetworkCookie> &QHttpReply::cookies() const
+{
+    return d->cookies;
+}
+
+void QHttpReply::setCookies(const QList<QNetworkCookie> &cookies)
+{
+    if (d->cookies == cookies) return;
+    d->cookies = cookies;
 }
 
 void QHttpReply::close()
