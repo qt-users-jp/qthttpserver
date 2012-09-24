@@ -33,6 +33,7 @@
 #include "qthttpserverglobal.h"
 
 class QHttpConnection;
+class QNetworkCookie;
 
 class Q_HTTPSERVER_EXPORT QHttpRequest : public QBuffer
 {
@@ -45,6 +46,7 @@ public:
     bool hasRawHeader(const QByteArray &headerName) const;
     QByteArray rawHeader(const QByteArray &headerName) const;
     QList<QByteArray> rawHeaderList() const;
+    QList<QNetworkCookie> cookies() const;
     QUrl url() const;
 
 signals:
