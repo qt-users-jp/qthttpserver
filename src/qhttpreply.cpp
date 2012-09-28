@@ -117,7 +117,7 @@ void QHttpReply::Private::close()
     connection->write("\r\n");
 
     const QHttpRequest *request = connection->requestFor(q);
-    if (request && request->hasRawHeader("Accept-Encoding")) {
+    if (request && request->hasRawHeader("Accept-Encoding") && !rawHeaders.contains("Content-Encoding")) {
         QList<QByteArray> acceptEncodings = request->rawHeader("Accept-Encoding").split(',');
         if (acceptEncodings.contains("deflate")) {
             z_stream z;
@@ -158,6 +158,9 @@ void QHttpReply::Private::close()
         }
     }
 
+    if (!rawHeaders.contains("Content-Length")) {
+        rawHeaders.insert("Content-Length", QString::number(data.length()).toUtf8());
+    }
     foreach (const QByteArray &rawHeader, rawHeaders.keys()) {
         connection->write(rawHeader);
         connection->write(": ");
@@ -171,7 +174,6 @@ void QHttpReply::Private::close()
         connection->write(";\r\n");
     }
 
-    connection->write(QString::fromUtf8("Content-Length: %1\r\n").arg(data.length()).toLatin1());
     connection->write("\r\n");
     connection->write(data);
     q->deleteLater();
