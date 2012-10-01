@@ -126,7 +126,6 @@ void QHttpReply::Private::close()
             z.opaque = NULL;
 
             if (deflateInit(&z, Z_DEFAULT_COMPRESSION) == Z_OK) {
-//                qDebug() << Q_FUNC_INFO << __LINE__ << data.length();
                 QByteArray newData;
                 unsigned char buf[1024];
                 z.avail_in = data.size();
@@ -140,8 +139,9 @@ void QHttpReply::Private::close()
 //                    qDebug() << Q_FUNC_INFO << __LINE__ << z.avail_in << z.avail_out << ret;
                     if (ret == Z_STREAM_END) {
                         newData.append((const char*)buf, 1024 - z.avail_out);
-                        connection->write("Content-Encoding: deflate\r\n");
                         data = newData;
+                        rawHeaders["Content-Encoding"] = "deflate";
+                        rawHeaders["Content-Length"] = QString::number(data.length()).toUtf8();
 //                        qDebug() << "END";
                         break;
                     } else if (ret != Z_OK) {
