@@ -42,6 +42,7 @@ public:
     explicit QHttpRequest(QHttpConnection *parent);
     ~QHttpRequest();
     
+    const QString &remoteAddress() const;
     const QByteArray &method() const;
     bool hasRawHeader(const QByteArray &headerName) const;
     QByteArray rawHeader(const QByteArray &headerName) const;

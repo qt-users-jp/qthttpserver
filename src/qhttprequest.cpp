@@ -29,6 +29,7 @@
 #include <QtCore/QUrl>
 #include <QtCore/QHash>
 #include <QtCore/QStringList>
+#include <QtNetwork/QHostAddress>
 #include <QtNetwork/QNetworkCookie>
 
 #include "qhttpconnection_p.h"
@@ -55,6 +56,7 @@ private:
 
 public:
     QHttpConnection *connection;
+    QString remoteAddress;
     ReadState state;
     QByteArray method;
     QUrl url;
@@ -69,6 +71,7 @@ QHttpRequest::Private::Private(QHttpConnection *c, QHttpRequest *parent)
     , connection(c)
     , state(ReadUrl)
 {
+    remoteAddress = connection->peerAddress().toString();
     connect(connection, SIGNAL(readyRead()), this, SLOT(readyRead()));
     connect(connection, SIGNAL(disconnected()), this, SLOT(disconnected()));
     q->setBuffer(&data);
@@ -88,8 +91,9 @@ void QHttpRequest::Private::readyRead()
 
             method = array.takeFirst();
 
-            QByteArray path = array.takeFirst();
-            url = QUrl(QString::fromUtf8(path));
+            QString path = QString::fromUtf8(array.takeFirst());
+            url.setPath(path.section('?', 0, 0));
+            url.setQuery(path.section('?', 1));
             url.setScheme(QLatin1String("http"));
 
             QByteArray http = array.takeFirst();
@@ -170,6 +174,11 @@ QHttpRequest::QHttpRequest(QHttpConnection *parent)
 QHttpRequest::~QHttpRequest()
 {
     delete d;
+}
+
+const QString &QHttpRequest::remoteAddress() const
+{
+    return d->remoteAddress;
 }
 
 const QByteArray &QHttpRequest::method() const
