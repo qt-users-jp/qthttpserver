@@ -35,6 +35,26 @@
 class QHttpConnection;
 class QNetworkCookie;
 
+class Q_HTTPSERVER_EXPORT QHttpFileData : public QBuffer
+{
+    Q_OBJECT
+    Q_PROPERTY(QString fileName READ fileName NOTIFY fileNameChanged)
+    Q_PROPERTY(QString contentType READ contentType NOTIFY contentTypeChanged)
+public:
+    QHttpFileData(const QHash<QByteArray, QByteArray> &rawHeaders, const QByteArray &data, QObject *parent = 0);
+    ~QHttpFileData();
+    const QString &fileName() const;
+    const QString &contentType() const;
+
+signals:
+    void fileNameChanged(const QString &fileName);
+    void contentTypeChanged(const QString &contentType);
+
+private:
+    class Private;
+    Private *d;
+};
+
 class Q_HTTPSERVER_EXPORT QHttpRequest : public QBuffer
 {
     Q_OBJECT
@@ -47,7 +67,8 @@ public:
     bool hasRawHeader(const QByteArray &headerName) const;
     QByteArray rawHeader(const QByteArray &headerName) const;
     QList<QByteArray> rawHeaderList() const;
-    QList<QNetworkCookie> cookies() const;
+    const QList<QNetworkCookie> &cookies() const;
+    const QList<QHttpFileData *> &files() const;
     QUrl url() const;
 
 signals:
