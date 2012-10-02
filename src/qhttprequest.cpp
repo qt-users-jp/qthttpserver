@@ -34,6 +34,48 @@
 
 #include "qhttpconnection_p.h"
 
+class QHttpFileData::Private
+{
+public:
+    QString fileName;
+    QString contentType;
+    QByteArray data;
+};
+
+QHttpFileData::QHttpFileData(const QHash<QByteArray, QByteArray> &rawHeaders, const QByteArray &data, QObject *parent)
+    : QBuffer(parent)
+    , d(new Private)
+{
+    if (rawHeaders.contains("Content-Type")) {
+        d->contentType = QString::fromUtf8(rawHeaders.value("Content-Type"));
+    }
+    if (rawHeaders.contains("Content-Disposition")) {
+        QByteArray contentDisposition = rawHeaders.value("Content-Disposition");
+        contentDisposition = contentDisposition.mid(contentDisposition.indexOf("filename=\"") + 10);
+        contentDisposition.chop(1);
+        d->fileName = QString::fromUtf8(contentDisposition);
+    }
+    d->data = data;
+    setBuffer(&d->data);
+    open(QIODevice::ReadOnly);
+}
+
+QHttpFileData::~QHttpFileData()
+{
+    delete d;
+}
+
+const QString &QHttpFileData::fileName() const
+{
+    return d->fileName;
+}
+
+const QString &QHttpFileData::contentType() const
+{
+    return d->contentType;
+}
+
+
 class QHttpRequest::Private : public QObject
 {
     Q_OBJECT
@@ -42,6 +84,8 @@ public:
         ReadUrl
         , ReadHeaders
         , ReadBody
+        , MultipartHeader
+        , MultipartBody
         , ReadDone
     };
 
@@ -63,6 +107,9 @@ public:
     QHash<QByteArray, QByteArray> rawHeaders;
     QList<QNetworkCookie> cookies;
     QByteArray data;
+    QByteArray multipartBoundary;
+    QList<QHttpFileData *> files;
+
 };
 
 QHttpRequest::Private::Private(QHttpConnection *c, QHttpRequest *parent)
@@ -109,7 +156,6 @@ void QHttpRequest::Private::readyRead()
         while (socket->canReadLine()) {
             QByteArray line = socket->readLine();
             line = line.left(line.length() - 2);
-
             if (line.isEmpty()) {
                 if (!q->hasRawHeader("Content-Length")) {
                     state = ReadDone;
@@ -139,6 +185,16 @@ void QHttpRequest::Private::readyRead()
                     foreach (const QByteArray &c, value.split(';')) {
                         cookies.append(QNetworkCookie::parseCookies(c));
                     }
+                } else if (name == "Content-Type") {
+                    QList<QByteArray> fields = value.split(';');
+                    QByteArray boundary(" boundary=");
+                    if (fields.first().toLower() == "multipart/form-data" && fields.length() == 2 && fields.at(1).startsWith(boundary)) {
+                        rawHeaders.insert(name.toLower(), fields.takeFirst().toLower());
+                        multipartBoundary = fields.takeFirst().mid(boundary.length());
+                        multipartBoundary.prepend("--");
+                    } else {
+                        rawHeaders.insert(name.toLower(), value.toLower());
+                    }
                 } else {
                     rawHeaders.insert(name.toLower(), value.toLower());
                 }
@@ -150,6 +206,63 @@ void QHttpRequest::Private::readyRead()
             int length = q->rawHeader("Content-Length").toLongLong();
             data.append(connection->read(length - data.length()));
             if (data.length() == length) {
+                QHash<QByteArray, QByteArray> multipartRawHeaders;
+                QByteArray multipartData;
+                if (!multipartBoundary.isEmpty()) {
+                    QByteArray newData;
+                    foreach (QByteArray ba, data.split('\n')) {
+                        switch (state) {
+                        case ReadBody:
+                            ba.chop(1); // \r
+                            if (ba == multipartBoundary) {
+                                state = MultipartHeader;
+                            } else {
+                                qWarning() << Q_FUNC_INFO << __LINE__ << ba << multipartBoundary;
+                            }
+                            break;
+                        case MultipartHeader:
+                            ba.chop(1); // \r
+                            if (ba.isEmpty()) {
+                                state = MultipartBody;
+                            } else {
+                                int i = ba.indexOf(':');
+                                multipartRawHeaders.insert(ba.left(i), ba.mid(i + 2));
+                            }
+                            break;
+                        case MultipartBody:
+                            if (ba.startsWith(multipartBoundary)) {
+                                ba.chop(1); // \r
+                                if (multipartRawHeaders.contains("Content-Type")) {
+                                    files.append(new QHttpFileData(multipartRawHeaders, multipartData, this));
+                                } else {
+                                    QByteArray name = multipartRawHeaders.value("Content-Disposition").split('=').at(1);
+                                    name = name.mid(1, name.length() - 2);
+                                    if (!newData.isEmpty()) {
+                                        newData.append("&");
+                                    }
+                                    newData.append(name);
+                                    newData.append("=");
+                                    multipartData.chop(2);
+                                    newData.append(multipartData);
+                                }
+                                multipartRawHeaders.clear();
+                                multipartData.clear();
+                                if (ba.endsWith("--")) {
+                                    data = newData;
+                                    state = ReadDone;
+                                } else {
+                                    state = MultipartHeader;
+                                }
+                            } else if (ba != "\r") {
+                                multipartData.append(ba);
+                                multipartData.append("\n");
+                            }
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+                }
                 state = ReadDone;
                 emit q->ready();
             }
@@ -201,9 +314,14 @@ QList<QByteArray> QHttpRequest::rawHeaderList() const
     return d->rawHeaders.keys();
 }
 
-QList<QNetworkCookie> QHttpRequest::cookies() const
+const QList<QNetworkCookie> &QHttpRequest::cookies() const
 {
     return d->cookies;
+}
+
+const QList<QHttpFileData *> &QHttpRequest::files() const
+{
+    return d->files;
 }
 
 QUrl QHttpRequest::url() const
