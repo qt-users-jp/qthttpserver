@@ -1,6 +1,6 @@
 /* Copyright (c) 2012 QtHttpServer Project.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -11,7 +11,7 @@
  *     * Neither the name of the QtHttpServer nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -24,59 +24,39 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef QHTTPREQUEST_H
-#define QHTTPREQUEST_H
+#ifndef QWEBSOCKET_H
+#define QWEBSOCKET_H
 
-#include <QtCore/QBuffer>
-#include <QtCore/QVariant>
-
+#include <QtCore/QObject>
 #include "qthttpserverglobal.h"
 
 class QHttpConnection;
 class QNetworkCookie;
 
-class Q_HTTPSERVER_EXPORT QHttpFileData : public QBuffer
-{
-    Q_OBJECT
-    Q_PROPERTY(QString fileName READ fileName NOTIFY fileNameChanged)
-    Q_PROPERTY(QString contentType READ contentType NOTIFY contentTypeChanged)
-public:
-    QHttpFileData(const QHash<QByteArray, QByteArray> &rawHeaders, const QByteArray &data, QObject *parent = 0);
-    ~QHttpFileData();
-    const QString &fileName() const;
-    const QString &contentType() const;
-
-signals:
-    void fileNameChanged(const QString &fileName);
-    void contentTypeChanged(const QString &contentType);
-
-private:
-    class Private;
-    Private *d;
-};
-
-class Q_HTTPSERVER_EXPORT QHttpRequest : public QBuffer
+class Q_HTTPSERVER_EXPORT QWebSocket : public QObject
 {
     Q_OBJECT
 public:
-    explicit QHttpRequest(QHttpConnection *parent);
-
+    explicit QWebSocket(QHttpConnection *parent, const QUrl &url);
+    
     const QString &remoteAddress() const;
-    const QByteArray &method() const;
     bool hasRawHeader(const QByteArray &headerName) const;
     QByteArray rawHeader(const QByteArray &headerName) const;
     QList<QByteArray> rawHeaderList() const;
     const QList<QNetworkCookie> &cookies() const;
-    const QList<QHttpFileData *> &files() const;
     const QUrl &url() const;
 
+public slots:
+    void accept(const QByteArray &protocol = QByteArray());
+    void send(const QByteArray &message);
+
 signals:
-    void upgrade(const QByteArray &to, const QUrl &url);
     void ready();
+    void message(const QByteArray &message);
 
 private:
     class Private;
     Private *d;
 };
 
-#endif // QHTTPREQUEST_H
+#endif // QWEBSOCKET_H
