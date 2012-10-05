@@ -31,6 +31,7 @@
 
 class QHttpRequest;
 class QHttpReply;
+class QWebSocket;
 
 class QHttpConnection : public QTcpSocket
 {
@@ -47,6 +48,7 @@ public:
 
 signals:
     void ready(QHttpRequest *request, QHttpReply *reply);
+    void ready(QWebSocket *socket);
 
 private:
     class Private;

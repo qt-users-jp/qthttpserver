@@ -31,6 +31,7 @@
 
 #include "qhttprequest.h"
 #include "qhttpreply.h"
+#include "qwebsocket.h"
 
 class QHttpConnection::Private : public QObject
 {
@@ -39,8 +40,10 @@ public:
     Private(QHttpConnection *parent);
 
 private slots:
+    void upgrade(const QByteArray &to, const QUrl &url);
     void requestReady();
     void replyDone(QObject *);
+    void websocketReady();
 
 private:
     QHttpConnection *q;
@@ -58,9 +61,21 @@ QHttpConnection::Private::Private(QHttpConnection *parent)
 {
     QHttpRequest *request = new QHttpRequest(q);
     connect(request, SIGNAL(ready()), this, SLOT(requestReady()));
+    connect(request, SIGNAL(upgrade(QByteArray, QUrl)), this, SLOT(upgrade(QByteArray, QUrl)));
 
     timer.start();
     connect(q, SIGNAL(disconnected()), q, SLOT(deleteLater()));
+}
+
+void QHttpConnection::Private::upgrade(const QByteArray &to, const QUrl &url)
+{
+    QHttpRequest *request = qobject_cast<QHttpRequest *>(sender());
+    disconnect(request, 0, this, 0);
+    request->deleteLater();
+    if (to == "websocket") {
+        QWebSocket *socket = new QWebSocket(q, url);
+        connect(socket, SIGNAL(ready()), this, SLOT(websocketReady()));
+    }
 }
 
 void QHttpConnection::Private::requestReady()
@@ -97,11 +112,19 @@ void QHttpConnection::Private::requestReady()
 void QHttpConnection::Private::replyDone(QObject *reply)
 {
     if (requestMap.contains(reply)) {
-        requestMap.take(reply)->deleteLater();
+        QHttpRequest *request = requestMap.take(reply);
+        request->deleteLater();
     }
     if (keepAlive == 0 && requestMap.isEmpty()) {
         q->disconnectFromHost();
     }
+}
+
+void QHttpConnection::Private::websocketReady()
+{
+    QWebSocket *socket = qobject_cast<QWebSocket *>(sender());
+    disconnect(socket, SIGNAL(ready()), this, SLOT(websocketReady()));
+    emit q->ready(socket);
 }
 
 #if QT_VERSION < 0x050000
@@ -113,7 +136,6 @@ QHttpConnection::QHttpConnection(qintptr socketDescriptor, QObject *parent)
     , d(new Private(this))
 {
     setSocketOption(KeepAliveOption, 1);
-//    qDebug() << d << socketDescriptor;
     setSocketDescriptor(socketDescriptor);
 }
 

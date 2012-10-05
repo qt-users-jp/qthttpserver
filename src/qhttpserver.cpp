@@ -62,6 +62,7 @@ void QHttpServer::Private::incomingConnection(qintptr socketDescriptor)
 {
     QHttpConnection *connection = new QHttpConnection(socketDescriptor, this);
     connect(connection, SIGNAL(ready(QHttpRequest *, QHttpReply *)), q, SIGNAL(incomingConnection(QHttpRequest *, QHttpReply *)));
+    connect(connection, SIGNAL(ready(QWebSocket *)), q, SIGNAL(incomingConnection(QWebSocket *)));
 }
 
 QHttpServer::QHttpServer(QObject *parent)

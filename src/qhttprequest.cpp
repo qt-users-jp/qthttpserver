@@ -27,8 +27,6 @@
 #include "qhttprequest.h"
 
 #include <QtCore/QUrl>
-#include <QtCore/QHash>
-#include <QtCore/QStringList>
 #include <QtNetwork/QHostAddress>
 #include <QtNetwork/QNetworkCookie>
 
@@ -109,7 +107,6 @@ public:
     QByteArray data;
     QByteArray multipartBoundary;
     QList<QHttpFileData *> files;
-
 };
 
 QHttpRequest::Private::Private(QHttpConnection *c, QHttpRequest *parent)
@@ -123,16 +120,15 @@ QHttpRequest::Private::Private(QHttpConnection *c, QHttpRequest *parent)
     connect(connection, SIGNAL(disconnected()), this, SLOT(disconnected()));
     q->setBuffer(&data);
     q->open(QIODevice::ReadOnly);
+    QMetaObject::invokeMethod(this, "readyRead", Qt::QueuedConnection);
 }
 
 void QHttpRequest::Private::readyRead()
 {
-    QTcpSocket* socket = qobject_cast<QTcpSocket*>(sender());
-
     switch (state) {
     case ReadUrl:
-        if (socket->canReadLine()) {
-            QByteArray line = socket->readLine();
+        if (connection->canReadLine()) {
+            QByteArray line = connection->readLine();
             line = line.left(line.length() - 2);
             QList<QByteArray> array = line.split(' ');
 
@@ -146,15 +142,15 @@ void QHttpRequest::Private::readyRead()
             QByteArray http = array.takeFirst();
             if (http != "HTTP/1.1" && http != "HTTP/1.0") {
                 qWarning() << http << "is not supported.";
-                socket->disconnectFromHost();
+                connection->disconnectFromHost();
                 return;
             }
             state = ReadHeaders;
         }
 //        break;
     case ReadHeaders:
-        while (socket->canReadLine()) {
-            QByteArray line = socket->readLine();
+        while (connection->canReadLine()) {
+            QByteArray line = connection->readLine();
             line = line.left(line.length() - 2);
             if (line.isEmpty()) {
                 if (!q->hasRawHeader("Content-Length")) {
@@ -172,7 +168,11 @@ void QHttpRequest::Private::readyRead()
             if (space > 0) {
                 QByteArray name = line.left(space - 1);
                 QByteArray value = line.mid(space + 1);
-                if (name == "Host") {
+                if (name == "Upgrade") {
+                    disconnect(connection, 0, this, 0);
+                    emit q->upgrade(value, url);
+                    return;
+                } else if (name == "Host") {
                     int colon = value.indexOf(':');
                     if (colon > -1) {
                         url.setHost(QString::fromUtf8(value.left(colon)));
@@ -193,10 +193,10 @@ void QHttpRequest::Private::readyRead()
                         multipartBoundary = fields.takeFirst().mid(boundary.length());
                         multipartBoundary.prepend("--");
                     } else {
-                        rawHeaders.insert(name.toLower(), value.toLower());
+                        rawHeaders.insert(name.toLower(), value);
                     }
                 } else {
-                    rawHeaders.insert(name.toLower(), value.toLower());
+                    rawHeaders.insert(name.toLower(), value);
                 }
             }
         }
@@ -284,11 +284,6 @@ QHttpRequest::QHttpRequest(QHttpConnection *parent)
 {
 }
 
-QHttpRequest::~QHttpRequest()
-{
-    delete d;
-}
-
 const QString &QHttpRequest::remoteAddress() const
 {
     return d->remoteAddress;
@@ -324,7 +319,7 @@ const QList<QHttpFileData *> &QHttpRequest::files() const
     return d->files;
 }
 
-QUrl QHttpRequest::url() const
+const QUrl &QHttpRequest::url() const
 {
     return d->url;
 }
