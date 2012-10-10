@@ -52,7 +52,12 @@ private slots:
     void readData();
 
 private:
+    QByteArray decode(const QByteArray &key) const;
+
+private:
     QWebSocket *q;
+    bool draft;
+    int version;
 
 public:
     QHttpConnection *connection;
@@ -68,12 +73,15 @@ public:
 QWebSocket::Private::Private(QHttpConnection *c, QWebSocket *parent, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders)
     : QObject(parent)
     , q(parent)
+    , draft(true)
+    , version(17)
     , connection(c)
     , state(ReadHeaders)
     , url(url)
     , rawHeaders(rawHeaders)
     , connected(false)
 {
+//    qDebug() << Q_FUNC_INFO << __LINE__ << url << rawHeaders;
     this->url.setScheme("ws");
     remoteAddress = connection->peerAddress().toString();
     connect(connection, SIGNAL(readyRead()), this, SLOT(readyRead()));
@@ -89,6 +97,7 @@ void QWebSocket::Private::readyRead()
         while (connection->canReadLine()) {
             QByteArray line = connection->readLine();
             line = line.left(line.length() - 2);
+//            qDebug() << Q_FUNC_INFO << __LINE__ << line;
             if (line.isEmpty()) {
                 state = ReadDone;
                 emit q->ready();
@@ -119,7 +128,8 @@ void QWebSocket::Private::readyRead()
         }
         break;
     case ReadDone:
-        readData();
+        if (connected)
+            readData();
         break;
     default:
         break;
@@ -128,120 +138,206 @@ void QWebSocket::Private::readyRead()
 
 void QWebSocket::Private::accept(const QByteArray &protocol)
 {
-    connection->write("HTTP/1.1 101 Switching Protocols\r\n");
-    connection->write("Upgrade: websocket\r\n");
+//    connection->write("HTTP/1.1 101 Switching Protocols\r\n");
+    connection->write("HTTP/1.1 101 Web Socket Protocol Handshake\r\n");
+    connection->write("Upgrade: WebSocket\r\n");
     connection->write("Connection: Upgrade\r\n");
-    QByteArray key = q->rawHeader("Sec-WebSocket-Key");
-    key.append("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
-    key = QCryptographicHash::hash(key, QCryptographicHash::Sha1);
-    key = key.toBase64();
-    connection->write("Sec-WebSocket-Accept: " + key + "\r\n");
+
+    if (rawHeaders.contains("sec-websocket-key")) {
+        QByteArray key = rawHeaders.value("sec-websocket-key");
+        key.append("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+        key = QCryptographicHash::hash(key, QCryptographicHash::Sha1);
+        key = key.toBase64();
+        connection->write("Sec-WebSocket-Accept: " + key + "\r\n");
+    }
+    connection->write("Sec-WebSocket-Origin: " + rawHeaders.value("origin") + "\r\n");
+    connection->write("Sec-WebSocket-Location: " + url.toString().toUtf8() + "\r\n");
     if (!protocol.isNull()) {
         connection->write("Sec-WebSocket-Protocol: " + protocol + "\r\n");
     }
     connection->write("\r\n");
+    if (rawHeaders.contains("sec-websocket-key1") && rawHeaders.contains("sec-websocket-key2")) {
+        version = 0;
+        QByteArray key1 = rawHeaders.value("sec-websocket-key1");
+        QByteArray key2 = rawHeaders.value("sec-websocket-key2");
+        QByteArray challenge;
+
+//        qDebug() << decode(QByteArray("3 7 78B 67  5      W%89")).toHex();
+        challenge.append(decode(key1));
+        challenge.append(decode(key2));
+        QByteArray body = connection->read(8);
+//        qDebug() << challenge.toHex() << body.toHex() << body.length();
+        challenge.append(body);
+//        qDebug() << challenge.toHex();
+        body = QCryptographicHash::hash(challenge, QCryptographicHash::Md5);
+//        qDebug() << body.toHex() << body.length();
+//        qDebug() << body;
+        connection->write(body);
+//        connection->write("\r\n");
+        connection->flush();
+    }
     connected = true;
+}
+
+QByteArray QWebSocket::Private::decode(const QByteArray &key) const
+{
+//    qDebug() << Q_FUNC_INFO << __LINE__ << key;
+    QByteArray ret;
+    int spaceCount = 0;
+    QByteArray num;
+    for (int i = 0; i < key.length(); i++) {
+        switch (key.at(i)) {
+        case ' ':
+            spaceCount++;
+            break;
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+            num.append(key.at(i));
+            break;
+        }
+    }
+
+    if (spaceCount == 0) return ret;
+    qulonglong value = num.toULongLong() / spaceCount;
+//    qDebug() << Q_FUNC_INFO << __LINE__ << num << spaceCount << value;
+    for (int i = 0; i < 4; i++) {
+//        qDebug() << Q_FUNC_INFO << __LINE__ << value;
+        char ch = value & 0xff;
+//        qDebug() << Q_FUNC_INFO << __LINE__ << QString("0x%1").arg(value & 0xff, 0, 16);
+        ret.prepend(ch);
+        value /= 0x100;
+    }
+//    qDebug() << Q_FUNC_INFO << __LINE__ << ret;
+    return ret;
 }
 
 void QWebSocket::Private::readData()
 {
+//    qDebug() << Q_FUNC_INFO << __LINE__;
     int pos = 0;
     QByteArray data = connection->readAll();
-    unsigned char firstByte = data.at(pos++);
-    bool fin = ((firstByte & 0x80) >> 7 == 1);
-    if (!fin) {
-        message.append(data);
-        return;
-    }
-    char opcode = (firstByte & 0x0f);
-    switch (opcode) {
-    case 0x0:
-        qDebug() << Q_FUNC_INFO << __LINE__ << "continuation";
-        break;
-    case 0x1:
-        qDebug() << Q_FUNC_INFO << __LINE__ << "text";
-        break;
-    case 0x2:
-        qDebug() << Q_FUNC_INFO << __LINE__ << "binary";
-        break;
-    case 0x3:
-    case 0x4:
-    case 0x5:
-    case 0x6:
-    case 0x7:
-        qDebug() << Q_FUNC_INFO << __LINE__ << "reserved for further non-control frames";
-        break;
-    case 0x8:
-        qDebug() << Q_FUNC_INFO << __LINE__ << "connection close";
-        break;
-    case 0x9:
-        qDebug() << Q_FUNC_INFO << __LINE__ << "ping";
-        break;
-    case 0xA:
-        qDebug() << Q_FUNC_INFO << __LINE__ << "pong";
-        break;
-    default:
-        qDebug() << Q_FUNC_INFO << __LINE__ << "reserved for further control frames";
-        break;
-    }
+//    qDebug() << Q_FUNC_INFO << __LINE__ << data.toHex() << data.length();
 
-    unsigned char secondByte = data.at(pos++);
-    bool mask = ((secondByte & 0x80) >> 7 == 1);
-    if (!mask) {
-        qWarning() << "browse should always mask the payload data";
-        return;
-    }
-    qulonglong payloadLength = (secondByte & 0x7f);
-    if (payloadLength == 0x7e) {
-        payloadLength = 0;
-        for (int j = 0; j < 2; j++) {
-            payloadLength += ((unsigned char)data.at(pos++) << ((1-j) * 8));
+    if (draft && version == 0 && (unsigned char)data.at(0) == 0x00 && (unsigned char)data.at(data.length() - 1) == 0xff) {
+        data = data.mid(1, data.length() - 2);
+    } else {
+        unsigned char firstByte = data.at(pos++);
+        qDebug() << Q_FUNC_INFO << __LINE__ << firstByte;
+        bool fin = ((firstByte & 0x80) >> 7 == 1);
+        qDebug() << Q_FUNC_INFO << __LINE__ << fin;
+        if (!fin) {
+            message.append(data);
+            return;
         }
-    } else if (payloadLength == 0x7f) {
-        payloadLength = 0;
-        for (int j = 0; j < 8; j++) {
-            payloadLength += ((unsigned char)data.at(pos++) << ((7-j) * 8));
+        char opcode = (firstByte & 0x0f);
+        switch (opcode) {
+        case 0x0:
+            qDebug() << Q_FUNC_INFO << __LINE__ << "continuation";
+            break;
+        case 0x1:
+            qDebug() << Q_FUNC_INFO << __LINE__ << "text";
+            break;
+        case 0x2:
+            qDebug() << Q_FUNC_INFO << __LINE__ << "binary";
+            break;
+        case 0x3:
+        case 0x4:
+        case 0x5:
+        case 0x6:
+        case 0x7:
+            qDebug() << Q_FUNC_INFO << __LINE__ << "reserved for further non-control frames";
+            break;
+        case 0x8:
+            qDebug() << Q_FUNC_INFO << __LINE__ << "connection close";
+            break;
+        case 0x9:
+            qDebug() << Q_FUNC_INFO << __LINE__ << "ping";
+            break;
+        case 0xA:
+            qDebug() << Q_FUNC_INFO << __LINE__ << "pong";
+            break;
+        default:
+            qDebug() << Q_FUNC_INFO << __LINE__ << "reserved for further control frames";
+            break;
+        }
+        qDebug() << Q_FUNC_INFO << __LINE__ << opcode;
+
+        unsigned char secondByte = data.at(pos++);
+        bool mask = ((secondByte & 0x80) >> 7 == 1);
+        if (!mask) {
+    //        qWarning() << "browse should always mask the payload data";
+    //        return;
+        }
+        qulonglong payloadLength = (secondByte & 0x7f);
+        qDebug() << Q_FUNC_INFO << __LINE__ << payloadLength;
+        if (payloadLength == 0x7e) {
+            payloadLength = 0;
+            for (int j = 0; j < 2; j++) {
+                payloadLength += ((unsigned char)data.at(pos++) << ((1-j) * 8));
+            }
+        } else if (payloadLength == 0x7f) {
+            payloadLength = 0;
+            for (int j = 0; j < 8; j++) {
+                payloadLength += ((unsigned char)data.at(pos++) << ((7-j) * 8));
+            }
+        }
+        QByteArray key = data.mid(pos, 4);
+        pos += 4;
+        data = data.mid(pos, payloadLength);
+        int len = data.size();
+        if (mask) {
+            for (int i = 0; i < len; i++) {
+                data[i] = (unsigned char)data.at(i) ^ (unsigned char)key.at(i % key.length());
+            }
         }
     }
-    QByteArray key = data.mid(pos, 4);
-    pos += 4;
-    data = data.mid(pos, payloadLength);
-    int len = data.size();
-    for (int i = 0; i < len; i++) {
-        data[i] = (unsigned char)data.at(i) ^ (unsigned char)key.at(i % key.length());
-    }
+//    qDebug() << Q_FUNC_INFO << __LINE__ << data;
     emit q->message(data);
 }
 
 void QWebSocket::Private::send(const QByteArray &message)
 {
     QByteArray data;
-    unsigned char byte = 0;
-    unsigned char fin = (1 << 7);
-    byte |= fin;
-    unsigned char opcode = (1 << 0);
-    byte |= opcode;
-    data.append(byte);
-    byte = 0;
-    if (message.length() < 0x7e) {
-        byte |= message.length();
-        data.append(byte);
-    } else if (message.length() < 0xffff) {
-        byte |= 0x7e;
-        data.append(byte);
-        for (int j = 0; j < 2; j++) {
-            byte = (message.length() & (0xff << (1 - j) * 8));
-            data.append(byte);
-        }
+    if (draft && version == 0) {
+        data.append((char)0x00);
+        data.append(message);
+        data.append((char)0xff);
     } else {
-        byte |= 0x7f;
+        unsigned char byte = 0;
+        unsigned char fin = (1 << 7);
+        byte |= fin;
+        unsigned char opcode = (1 << 0);
+        byte |= opcode;
         data.append(byte);
-        for (int j = 0; j < 8; j++) {
-            byte = (message.length() & (0xff << (7 - j) * 8));
+        byte = 0;
+        if (message.length() < 0x7e) {
+            byte |= message.length();
             data.append(byte);
+        } else if (message.length() < 0xffff) {
+            byte |= 0x7e;
+            data.append(byte);
+            for (int j = 0; j < 2; j++) {
+                byte = (message.length() & (0xff << (1 - j) * 8));
+                data.append(byte);
+            }
+        } else {
+            byte |= 0x7f;
+            data.append(byte);
+            for (int j = 0; j < 8; j++) {
+                byte = (message.length() & (0xff << (7 - j) * 8));
+                data.append(byte);
+            }
         }
+        data.append(message);
     }
-    data.append(message);
     connection->write(data);
     connection->flush();
 }

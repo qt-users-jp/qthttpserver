@@ -72,7 +72,7 @@ void QHttpConnection::Private::upgrade(const QByteArray &to, const QUrl &url, co
     QHttpRequest *request = qobject_cast<QHttpRequest *>(sender());
     disconnect(request, 0, this, 0);
     request->deleteLater();
-    if (to == "websocket") {
+    if (to.toLower() == "websocket") {
         QWebSocket *socket = new QWebSocket(q, url, rawHeaders);
         connect(socket, SIGNAL(ready()), this, SLOT(websocketReady()));
     }
