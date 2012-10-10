@@ -40,7 +40,7 @@ public:
     Private(QHttpConnection *parent);
 
 private slots:
-    void upgrade(const QByteArray &to, const QUrl &url);
+    void upgrade(const QByteArray &to, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders);
     void requestReady();
     void replyDone(QObject *);
     void websocketReady();
@@ -61,19 +61,19 @@ QHttpConnection::Private::Private(QHttpConnection *parent)
 {
     QHttpRequest *request = new QHttpRequest(q);
     connect(request, SIGNAL(ready()), this, SLOT(requestReady()));
-    connect(request, SIGNAL(upgrade(QByteArray, QUrl)), this, SLOT(upgrade(QByteArray, QUrl)));
+    connect(request, SIGNAL(upgrade(QByteArray, QUrl, QHash<QByteArray, QByteArray>)), this, SLOT(upgrade(QByteArray, QUrl, QHash<QByteArray, QByteArray>)));
 
     timer.start();
     connect(q, SIGNAL(disconnected()), q, SLOT(deleteLater()));
 }
 
-void QHttpConnection::Private::upgrade(const QByteArray &to, const QUrl &url)
+void QHttpConnection::Private::upgrade(const QByteArray &to, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders)
 {
     QHttpRequest *request = qobject_cast<QHttpRequest *>(sender());
     disconnect(request, 0, this, 0);
     request->deleteLater();
     if (to == "websocket") {
-        QWebSocket *socket = new QWebSocket(q, url);
+        QWebSocket *socket = new QWebSocket(q, url, rawHeaders);
         connect(socket, SIGNAL(ready()), this, SLOT(websocketReady()));
     }
 }

@@ -42,7 +42,7 @@ public:
         ReadHeaders
         , ReadDone
     };
-    Private(QHttpConnection *c, QWebSocket *parent, const QUrl &url);
+    Private(QHttpConnection *c, QWebSocket *parent, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders);
     void accept(const QByteArray &protocol);
     void send(const QByteArray &message);
 
@@ -65,12 +65,13 @@ public:
     QByteArray message;
 };
 
-QWebSocket::Private::Private(QHttpConnection *c, QWebSocket *parent, const QUrl &url)
+QWebSocket::Private::Private(QHttpConnection *c, QWebSocket *parent, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders)
     : QObject(parent)
     , q(parent)
     , connection(c)
     , state(ReadHeaders)
     , url(url)
+    , rawHeaders(rawHeaders)
     , connected(false)
 {
     this->url.setScheme("ws");
@@ -253,9 +254,9 @@ void QWebSocket::Private::disconnected()
     qDebug() << Q_FUNC_INFO << __LINE__;
 }
 
-QWebSocket::QWebSocket(QHttpConnection *parent, const QUrl &url)
+QWebSocket::QWebSocket(QHttpConnection *parent, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders)
     : QObject(parent)
-    , d(new Private(parent, this, url))
+    , d(new Private(parent, this, url, rawHeaders))
 {
 }
 

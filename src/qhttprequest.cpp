@@ -170,7 +170,7 @@ void QHttpRequest::Private::readyRead()
                 QByteArray value = line.mid(space + 1);
                 if (name == "Upgrade") {
                     disconnect(connection, 0, this, 0);
-                    emit q->upgrade(value, url);
+                    emit q->upgrade(value, url, rawHeaders);
                     return;
                 } else if (name == "Host") {
                     int colon = value.indexOf(':');
