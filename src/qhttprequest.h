@@ -71,7 +71,7 @@ public:
     const QUrl &url() const;
 
 signals:
-    void upgrade(const QByteArray &to, const QUrl &url);
+    void upgrade(const QByteArray &to, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders);
     void ready();
 
 private:

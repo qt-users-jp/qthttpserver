@@ -37,7 +37,7 @@ class Q_HTTPSERVER_EXPORT QWebSocket : public QObject
 {
     Q_OBJECT
 public:
-    explicit QWebSocket(QHttpConnection *parent, const QUrl &url);
+    explicit QWebSocket(QHttpConnection *parent, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders);
     
     const QString &remoteAddress() const;
     bool hasRawHeader(const QByteArray &headerName) const;
