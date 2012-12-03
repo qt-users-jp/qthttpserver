@@ -48,6 +48,7 @@ public:
 
 public slots:
     void accept(const QByteArray &protocol = QByteArray());
+    void close();
     void send(const QByteArray &message);
 
 signals:

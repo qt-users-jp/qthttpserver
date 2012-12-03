@@ -44,6 +44,7 @@ public:
     };
     Private(QHttpConnection *c, QWebSocket *parent, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders);
     void accept(const QByteArray &protocol);
+    void close();
     void send(const QByteArray &message);
 
 private slots:
@@ -177,6 +178,11 @@ void QWebSocket::Private::accept(const QByteArray &protocol)
         connection->flush();
     }
     connected = true;
+}
+
+void QWebSocket::Private::close()
+{
+    connection->disconnectFromHost();
 }
 
 QByteArray QWebSocket::Private::decode(const QByteArray &key) const
@@ -325,14 +331,17 @@ void QWebSocket::Private::send(const QByteArray &message)
             byte |= 0x7e;
             data.append(byte);
             for (int j = 0; j < 2; j++) {
-                byte = (message.length() & (0xff << (1 - j) * 8));
+                byte = (message.length() >> (1 - j) * 8) & 0xff;
                 data.append(byte);
             }
         } else {
             byte |= 0x7f;
             data.append(byte);
             for (int j = 0; j < 8; j++) {
-                byte = (message.length() & (0xff << (7 - j) * 8));
+                if (j < 4)
+                    byte = 0;
+                else
+                    byte = (message.length() >> (7 - j) * 8) & 0xff;
                 data.append(byte);
             }
         }
@@ -389,6 +398,11 @@ const QUrl &QWebSocket::url() const
 void QWebSocket::accept(const QByteArray &protocol)
 {
     d->accept(protocol);
+}
+
+void QWebSocket::close()
+{
+    d->close();
 }
 
 void QWebSocket::send(const QByteArray &message)
