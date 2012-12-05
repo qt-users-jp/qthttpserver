@@ -153,6 +153,7 @@ void QHttpReply::Private::close()
                         z.next_out = buf;
                     }
                 }
+                deflateEnd(&z);
 //                qDebug() << Q_FUNC_INFO << __LINE__ << newData.length();
             }
         }
