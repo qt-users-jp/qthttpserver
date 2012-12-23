@@ -233,7 +233,11 @@ void QHttpRequest::Private::readyRead()
                             if (ba.startsWith(multipartBoundary)) {
                                 ba.chop(1); // \r
                                 if (multipartRawHeaders.contains("Content-Type")) {
-                                    files.append(new QHttpFileData(multipartRawHeaders, multipartData, this));
+                                    if (multipartData.size() > 0
+                                            && multipartRawHeaders.contains("Content-Disposition")
+                                            && !rawHeaders.value("Content-Disposition").contains("filename=\"\"")) {
+                                        files.append(new QHttpFileData(multipartRawHeaders, multipartData, this));
+                                    }
                                 } else {
                                     QByteArray name = multipartRawHeaders.value("Content-Disposition").split('=').at(1);
                                     name = name.mid(1, name.length() - 2);
