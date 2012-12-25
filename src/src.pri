@@ -17,3 +17,5 @@ HEADERS += \
 
 PRIVATE_HEADERS = \
     $$PWD/qhttpconnection_p.h
+
+LIBS += -lz
