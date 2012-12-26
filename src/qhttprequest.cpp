@@ -257,7 +257,7 @@ void QHttpRequest::Private::readyRead()
                                 } else {
                                     state = MultipartHeader;
                                 }
-                            } else if (ba != "\r") {
+                            } else {
                                 multipartData.append(ba);
                                 multipartData.append("\n");
                             }
