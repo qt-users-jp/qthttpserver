@@ -1,5 +1,6 @@
 INCLUDEPATH += $$PWD
 VPATH += $$PWD
+QT += network
 
 SOURCES += \
     $$PWD/qhttpserver.cpp \
