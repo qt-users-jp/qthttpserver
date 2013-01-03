@@ -70,7 +70,11 @@ public:
     const QList<QHttpFileData *> &files() const;
     const QUrl &url() const;
 
+public slots:
+    void setUrl(const QUrl &url);
+
 signals:
+    void urlChanged(const QUrl &url);
     void upgrade(const QByteArray &to, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders);
     void ready();
 

@@ -328,4 +328,11 @@ const QUrl &QHttpRequest::url() const
     return d->url;
 }
 
+void QHttpRequest::setUrl(const QUrl &url)
+{
+    if (d->url == url) return;
+    d->url = url;
+    emit urlChanged(url);
+}
+
 #include "qhttprequest.moc"
