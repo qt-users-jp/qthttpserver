@@ -410,4 +410,11 @@ void QWebSocket::send(const QByteArray &message)
     return d->send(message);
 }
 
+void QWebSocket::setUrl(const QUrl &url)
+{
+    if (d->url == url) return;
+    d->url = url;
+    emit urlChanged(url);
+}
+
 #include "qwebsocket.moc"
