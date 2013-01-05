@@ -51,7 +51,10 @@ public slots:
     void close();
     void send(const QByteArray &message);
 
+    void setUrl(const QUrl &url);
+
 signals:
+    void urlChanged(const QUrl &url);
     void ready();
     void message(const QByteArray &message);
 
