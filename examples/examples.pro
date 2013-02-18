@@ -1,3 +1,5 @@
 TEMPLATE = subdirs
-SUBDIRS += hello
+!isEmpty(QT.httpserver.name) {
+    SUBDIRS += hello
+}
 

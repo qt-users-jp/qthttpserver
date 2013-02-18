@@ -1,2 +1,1 @@
-INCLUDEPATH += $$PWD
-VPATH += $$PWD
+include(./qthttpserver/include.pri)
