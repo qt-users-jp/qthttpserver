@@ -1,14 +1,18 @@
 %modules = ( # path to module name map
     "QtHttpServer" => "$basedir/src",
 );
+
 %moduleheaders = ( # restrict the module headers to those found in relative path
 );
-# Module dependencies.
-# Every module that is required to build this module should have one entry.
-# Each of the module version specifiers can take one of the following values:
-#   - A specific Git revision.
-#   - any git symbolic ref resolvable from the module's repository (e.g. "refs/heads/master" to track master branch)
-#
+
 %dependencies = (
-    "qtbase" => "refs/heads/master",
+    "qtbase" => "refs/heads/dev",
+);
+
+%classnames = (
+    "qhttpserver.h" => "QHttpServer",
+    "qthttprequest.h" => "QHttpFileData",
+    "qthttprequest.h" => "QHttpRequest",
+    "qthttperply.h" => "QHttpReply",
+    "qtwebsocket.h" => "QWebSocket"
 );

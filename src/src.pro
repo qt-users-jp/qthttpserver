@@ -1,12 +1,3 @@
-load(qt_build_config)
+TEMPLATE = subdirs
 
-TARGET     = QtHttpServer
-MODULE     = httpserver
-QT         = core network
-
-load(qt_module)
-
-include(src.pri)
-
-PUBLIC_HEADERS = $$HEADERS
-HEADERS += $$PRIVATE_HEADERS
+!isEmpty(QT.network.name) SUBDIRS += qthttpserver
