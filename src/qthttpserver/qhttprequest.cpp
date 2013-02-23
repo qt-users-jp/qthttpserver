@@ -247,7 +247,7 @@ void QHttpRequest::Private::readyRead()
                                     newData.append(name);
                                     newData.append("=");
                                     multipartData.chop(2);
-                                    newData.append(QUrl::toPercentEncoding(multipartData));
+                                    newData.append(QUrl::toPercentEncoding(QString::fromUtf8(multipartData)));
                                 }
                                 multipartRawHeaders.clear();
                                 multipartData.clear();
