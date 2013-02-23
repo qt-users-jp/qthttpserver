@@ -27,47 +27,30 @@
 #include <QtCore/QCoreApplication>
 
 #include <QtHttpServer/QHttpServer>
-#include <QtHttpServer/QHttpRequest>
 #include <QtHttpServer/QHttpReply>
-
-class HttpServer : public QHttpServer
-{
-    Q_OBJECT
-public:
-    explicit HttpServer(QObject *parent = 0);
-
-private slots:
-    void hello(QHttpRequest *request, QHttpReply *reply);
-};
-
-HttpServer::HttpServer(QObject *parent)
-    : QHttpServer(parent)
-{
-    connect(this, SIGNAL(incomingConnection(QHttpRequest *, QHttpReply *)), this, SLOT(hello(QHttpRequest *, QHttpReply *)));
-
-}
-
-void HttpServer::hello(QHttpRequest *request, QHttpReply *reply)
-{
-    Q_UNUSED(request)
-    reply->setStatus(200);
-    reply->setRawHeader("Content-Type", "text/html; charset=utf-8;");
-    reply->write("<html>\r\n"
-                 "    <head>\r\n"
-                 "        <title>Hello QtHttpServer</title>\r\n"
-                 "    </head>\r\n"
-                 "    <body>\r\n"
-                 "        <h1>Hello QtHttpServer</h1>\r\n"
-                 "    </body>\r\n"
-                 "</html>\r\n");
-    reply->close();
-}
 
 int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
 
-    HttpServer server;
+    QHttpServer server;
+    QObject::connect(
+                &server
+                , (void (QHttpServer:: *)(QHttpRequest *, QHttpReply *))&QHttpServer::incomingConnection
+                , [](QHttpRequest *, QHttpReply *reply) {
+                    reply->setStatus(200);
+                    reply->setRawHeader("Content-Type", "text/html; charset=utf-8;");
+                    reply->write("<html>\r\n"
+                                 "    <head>\r\n"
+                                 "        <title>Hello QtHttpServer</title>\r\n"
+                                 "    </head>\r\n"
+                                 "    <body>\r\n"
+                                 "        <h1>Hello QtHttpServer</h1>\r\n"
+                                 "    </body>\r\n"
+                                 "</html>\r\n");
+                    reply->close();
+                } );
+
     if (!server.listen(QHostAddress::Any, 8080)) {
         qWarning() << "failed to listen.";
         return -1;
@@ -75,5 +58,3 @@ int main(int argc, char *argv[])
 
     return app.exec();
 }
-
-#include "main.moc"
