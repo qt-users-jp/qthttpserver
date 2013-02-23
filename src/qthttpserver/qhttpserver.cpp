@@ -37,11 +37,7 @@ public:
     Private(QHttpServer *parent);
 
 protected:
-#if QT_VERSION < 0x050000
-    void incomingConnection(int socketDescriptor);
-#else
     void incomingConnection(qintptr socketDescriptor);
-#endif
 
 private:
     QHttpServer *q;
@@ -54,11 +50,7 @@ QHttpServer::Private::Private(QHttpServer *parent)
     setMaxPendingConnections(1000);
 }
 
-#if QT_VERSION < 0x050000
-void QHttpServer::Private::incomingConnection(int socketDescriptor)
-#else
 void QHttpServer::Private::incomingConnection(qintptr socketDescriptor)
-#endif
 {
     QHttpConnection *connection = new QHttpConnection(socketDescriptor, this);
     connect(connection, SIGNAL(ready(QHttpRequest *, QHttpReply *)), q, SIGNAL(incomingConnection(QHttpRequest *, QHttpReply *)));

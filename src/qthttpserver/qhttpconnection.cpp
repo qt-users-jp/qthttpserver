@@ -127,11 +127,7 @@ void QHttpConnection::Private::websocketReady()
     emit q->ready(socket);
 }
 
-#if QT_VERSION < 0x050000
-QHttpConnection::QHttpConnection(int socketDescriptor, QObject *parent)
-#else
 QHttpConnection::QHttpConnection(qintptr socketDescriptor, QObject *parent)
-#endif
     : QTcpSocket(parent)
     , d(new Private(this))
 {
