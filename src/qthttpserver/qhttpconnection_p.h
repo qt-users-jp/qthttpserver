@@ -37,11 +37,7 @@ class QHttpConnection : public QTcpSocket
 {
     Q_OBJECT
 public:
-#if QT_VERSION < 0x050000
-    explicit QHttpConnection(int socketDescriptor, QObject *parent = 0);
-#else
     explicit QHttpConnection(qintptr socketDescriptor, QObject *parent = 0);
-#endif
     ~QHttpConnection();
 
     const QHttpRequest *requestFor(QHttpReply *reply);
