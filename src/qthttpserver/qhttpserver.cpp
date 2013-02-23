@@ -78,9 +78,11 @@ bool QHttpServer::isListening() const
     return d->isListening();
 }
 
-void QHttpServer::setMaxPendingConnections(int numConnections)
+void QHttpServer::setMaxPendingConnections(int maxPendingConnections)
 {
-    d->setMaxPendingConnections(numConnections);
+    if (d->maxPendingConnections() == maxPendingConnections) return;
+    d->setMaxPendingConnections(maxPendingConnections);
+    emit maxPendingConnectionsChanged(maxPendingConnections);
 }
 
 int QHttpServer::maxPendingConnections() const

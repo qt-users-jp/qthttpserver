@@ -39,6 +39,7 @@ class QWebSocket;
 class Q_HTTPSERVER_EXPORT QHttpServer : public QObject
 {
     Q_OBJECT
+    Q_PROPERTY(int maxPendingConnections READ maxPendingConnections WRITE setMaxPendingConnections NOTIFY maxPendingConnectionsChanged)
 public:
     explicit QHttpServer(QObject *parent = 0);
 
@@ -47,7 +48,7 @@ public:
 
     bool isListening() const;
 
-    void setMaxPendingConnections(int numConnections);
+    void setMaxPendingConnections(int maxPendingConnections);
     int maxPendingConnections() const;
 
     quint16 serverPort() const;
@@ -57,6 +58,8 @@ public:
     QString errorString() const;
 
 signals:
+    void maxPendingConnectionsChanged(int maxPendingConnections);
+
     void incomingConnection(QHttpRequest *request, QHttpReply *reply);
     void incomingConnection(QWebSocket *socket);
 
