@@ -83,7 +83,7 @@ QWebSocket::Private::Private(QHttpConnection *c, QWebSocket *parent, const QUrl 
     , connected(false)
 {
 //    qDebug() << Q_FUNC_INFO << __LINE__ << url << rawHeaders;
-    this->url.setScheme("ws");
+    this->url.setScheme(QLatin1String("ws"));
     remoteAddress = connection->peerAddress().toString();
     connect(connection, SIGNAL(readyRead()), this, SLOT(readyRead()));
     connect(connection, SIGNAL(disconnected()), this, SLOT(disconnected()));
