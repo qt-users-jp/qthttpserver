@@ -40,7 +40,8 @@ public:
     Private(QHttpConnection *c, QHttpReply *parent);
 
 public slots:
-    void close();
+    void writeHeaders();
+    void writeBody();
 
 private:
     QHttpReply *q;
@@ -108,14 +109,13 @@ QHttpReply::Private::Private(QHttpConnection *c, QHttpReply *parent)
     q->open(QIODevice::WriteOnly);
 }
 
-void QHttpReply::Private::close()
+void QHttpReply::Private::writeHeaders()
 {
     connection->write("HTTP/1.1 ");
     connection->write(QByteArray::number(status));
     connection->write(" ");
     connection->write(statusCodes.value(status));
     connection->write("\r\n");
-
     const QHttpRequest *request = connection->requestFor(q);
     if (request && request->hasRawHeader("Accept-Encoding") && !rawHeaders.contains("Content-Encoding")) {
         QList<QByteArray> acceptEncodings = request->rawHeader("Accept-Encoding").split(',');
@@ -176,6 +176,10 @@ void QHttpReply::Private::close()
     }
 
     connection->write("\r\n");
+}
+
+void QHttpReply::Private::writeBody()
+{
     connection->write(data);
     q->deleteLater();
 }
@@ -198,7 +202,9 @@ int QHttpReply::status() const
 
 void QHttpReply::setStatus(int status)
 {
+    if (d->status == status) return;
     d->status = status;
+    emit statusChanged(status);
 }
 
 bool QHttpReply::hasRawHeader(const QByteArray &headerName) const
@@ -241,7 +247,8 @@ void QHttpReply::close()
 {
     QBuffer::close();
 //    QMetaObject::invokeMethod(d, "close", Qt::QueuedConnection);
-    d->close();
+    d->writeHeaders();
+    d->writeBody();
 }
 
 #include "qhttpreply.moc"

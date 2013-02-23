@@ -37,6 +37,7 @@ class QNetworkCookie;
 class Q_HTTPSERVER_EXPORT QHttpReply : public QBuffer
 {
     Q_OBJECT
+    Q_PROPERTY(int status READ status WRITE setStatus NOTIFY statusChanged)
 public:
     explicit QHttpReply(QHttpConnection *parent);
     ~QHttpReply();
@@ -56,6 +57,7 @@ public:
 
 signals:
     void done();
+    void statusChanged(int status);
 
 private:
     class Private;
