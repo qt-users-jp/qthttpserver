@@ -1,10 +1,7 @@
 TEMPLATE = app
 TARGET = httphelloserver
 
-CONFIG += qt warn_on
+QT += httpserver
+CONFIG += qt warn_on c++11 console
 
 SOURCES = main.cpp
-
-QT += httpserver
-CONFIG += console
-
