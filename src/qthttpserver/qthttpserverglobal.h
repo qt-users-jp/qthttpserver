@@ -36,7 +36,7 @@
 #    define Q_HTTPSERVER_EXPORT Q_DECL_IMPORT
 #  endif
 #else
-#  define Q_QML_EXPORT
+#  define Q_HTTPSERVER_EXPORT
 #endif
 
 #endif // QTHTTPSERVERGLOBAL_H
