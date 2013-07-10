@@ -165,13 +165,13 @@ void QHttpReply::Private::writeHeaders()
     foreach (const QByteArray &rawHeader, rawHeaders.keys()) {
         connection->write(rawHeader);
         connection->write(": ");
-        connection->write(rawHeaders.value(rawHeader));
+        connection->write(rawHeaders.value(rawHeader).toPercentEncoding());
         connection->write("\r\n");
     }
 
     foreach (const QNetworkCookie &cookie, cookies) {
         connection->write("Set-Cookie: ");
-        connection->write(cookie.toRawForm());
+        connection->write(cookie.toRawForm().toPercentEncoding());
         connection->write(";\r\n");
     }
 
