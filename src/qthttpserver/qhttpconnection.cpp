@@ -37,7 +37,7 @@ class QHttpConnection::Private : public QObject
 {
     Q_OBJECT
 public:
-    Private(QHttpConnection *parent);
+    Private(qintptr socketDescriptor, QHttpConnection *parent);
 
 private slots:
     void upgrade(const QByteArray &to, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders);
@@ -54,11 +54,14 @@ public:
     QTime timer;
 };
 
-QHttpConnection::Private::Private(QHttpConnection *parent)
+QHttpConnection::Private::Private(qintptr socketDescriptor, QHttpConnection *parent)
     : QObject(parent)
     , q(parent)
     , keepAlive(100)
 {
+    q->setSocketOption(KeepAliveOption, 1);
+    q->setSocketDescriptor(socketDescriptor);
+
     QHttpRequest *request = new QHttpRequest(q);
     connect(request, SIGNAL(ready()), this, SLOT(requestReady()));
     connect(request, SIGNAL(upgrade(QByteArray, QUrl, QHash<QByteArray, QByteArray>)), this, SLOT(upgrade(QByteArray, QUrl, QHash<QByteArray, QByteArray>)));
@@ -129,10 +132,8 @@ void QHttpConnection::Private::websocketReady()
 
 QHttpConnection::QHttpConnection(qintptr socketDescriptor, QObject *parent)
     : QTcpSocket(parent)
-    , d(new Private(this))
+    , d(new Private(socketDescriptor, this))
 {
-    setSocketOption(KeepAliveOption, 1);
-    setSocketDescriptor(socketDescriptor);
 }
 
 QHttpConnection::~QHttpConnection()
