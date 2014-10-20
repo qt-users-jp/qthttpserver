@@ -135,7 +135,7 @@ void QHttpRequest::Private::readyRead()
             method = array.takeFirst();
 
             QString path = QString::fromUtf8(array.takeFirst());
-            url.setPath(path.section('?', 0, 0));
+            url.setPath(path.section('?', 0, 0), QUrl::StrictMode);
             url.setQuery(path.section('?', 1));
             url.setScheme(QLatin1String("http"));
 
