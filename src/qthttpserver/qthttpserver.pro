@@ -8,3 +8,4 @@ include(qthttpserver.pri)
 
 PUBLIC_HEADERS = $$HEADERS
 HEADERS += $$PRIVATE_HEADERS
+CONFIG-=create_cmake
