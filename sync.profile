@@ -8,11 +8,3 @@
 %dependencies = (
     "qtbase" => "refs/heads/dev",
 );
-
-%classnames = (
-    "qhttpserver.h" => "QHttpServer",
-    "qthttprequest.h" => "QHttpFileData",
-    "qthttprequest.h" => "QHttpRequest",
-    "qthttperply.h" => "QHttpReply",
-    "qtwebsocket.h" => "QWebSocket"
-);

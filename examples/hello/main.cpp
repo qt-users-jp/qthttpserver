@@ -27,6 +27,7 @@
 #include <QtCore/QCoreApplication>
 
 #include <QtHttpServer/QHttpServer>
+#include <QtHttpServer/QHttpRequest>
 #include <QtHttpServer/QHttpReply>
 
 int main(int argc, char *argv[])
