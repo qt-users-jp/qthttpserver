@@ -29,6 +29,7 @@
 
 #include <QtCore/QBuffer>
 #include <QtCore/QVariant>
+#include <QtCore/QUuid>
 
 #include "qthttpserverglobal.h"
 
@@ -61,6 +62,7 @@ class Q_HTTPSERVER_EXPORT QHttpRequest : public QBuffer
 public:
     explicit QHttpRequest(QHttpConnection *parent);
 
+    const QUuid &uuid() const;
     const QString &remoteAddress() const;
     const QByteArray &method() const;
     bool hasRawHeader(const QByteArray &headerName) const;

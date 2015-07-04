@@ -99,6 +99,7 @@ private:
 
 public:
     QHttpConnection *connection;
+    QUuid uuid;
     QString remoteAddress;
     ReadState state;
     QByteArray method;
@@ -114,9 +115,10 @@ QHttpRequest::Private::Private(QHttpConnection *c, QHttpRequest *parent)
     : QObject(parent)
     , q(parent)
     , connection(c)
+    , uuid(QUuid::createUuid())
+    , remoteAddress(connection->peerAddress().toString())
     , state(ReadUrl)
 {
-    remoteAddress = connection->peerAddress().toString();
     connect(connection, SIGNAL(readyRead()), this, SLOT(readyRead()));
     connect(connection, SIGNAL(disconnected()), this, SLOT(disconnected()));
     q->setBuffer(&data);
@@ -289,6 +291,11 @@ QHttpRequest::QHttpRequest(QHttpConnection *parent)
 {
 }
 
+const QUuid &QHttpRequest::uuid() const
+{
+    return d->uuid;
+}
+
 const QString &QHttpRequest::remoteAddress() const
 {
     return d->remoteAddress;
@@ -345,7 +352,8 @@ QDebug operator<<(QDebug dbg, const QHttpRequest *request)
     dbg.resetFormat();
     dbg.nospace();
     dbg << "QHttpRequest ";
-    dbg << "{ method: " << request->method();
+    dbg << "{ uuid: " << request->uuid().toString();
+    dbg << "; method: " << request->method();
     dbg << "; url: " << request->url().toString();
     dbg << "; ip: " << request->remoteAddress();
     if (request->hasRawHeader("User-Agent")) {

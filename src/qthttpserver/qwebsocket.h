@@ -28,6 +28,7 @@
 #define QWEBSOCKET_H
 
 #include <QtCore/QObject>
+#include <QtCore/QUuid>
 #include "qthttpserverglobal.h"
 
 class QHttpConnection;
@@ -39,6 +40,7 @@ class Q_HTTPSERVER_EXPORT QWebSocket : public QObject
 public:
     explicit QWebSocket(QHttpConnection *parent, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders);
     
+    const QUuid &uuid() const;
     const QString &remoteAddress() const;
     bool hasRawHeader(const QByteArray &headerName) const;
     QByteArray rawHeader(const QByteArray &headerName) const;

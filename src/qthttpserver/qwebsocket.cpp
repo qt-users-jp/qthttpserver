@@ -62,6 +62,7 @@ private:
 
 public:
     QHttpConnection *connection;
+    QUuid uuid;
     QString remoteAddress;
     ReadState state;
     QUrl url;
@@ -77,13 +78,14 @@ QWebSocket::Private::Private(QHttpConnection *c, QWebSocket *parent, const QUrl 
     , draft(true)
     , version(17)
     , connection(c)
+    , uuid(QUuid::createUuid())
+    , remoteAddress(connection->peerAddress().toString())
     , state(ReadHeaders)
     , url(url)
     , rawHeaders(rawHeaders)
     , connected(false)
 {
     this->url.setScheme(QLatin1String("ws"));
-    remoteAddress = connection->peerAddress().toString();
     connect(connection, SIGNAL(readyRead()), this, SLOT(readyRead()));
     connect(connection, SIGNAL(disconnected()), this, SLOT(disconnected()));
     QMetaObject::invokeMethod(this, "readyRead", Qt::QueuedConnection);
@@ -347,6 +349,11 @@ QWebSocket::QWebSocket(QHttpConnection *parent, const QUrl &url, const QHash<QBy
 {
 }
 
+const QUuid &QWebSocket::uuid() const
+{
+    return d->uuid;
+}
+
 const QString &QWebSocket::remoteAddress() const
 {
     return d->remoteAddress;
@@ -408,7 +415,8 @@ QDebug operator<<(QDebug dbg, const QWebSocket *socket)
     dbg.resetFormat();
     dbg.nospace();
     dbg << "QWebSocket ";
-    dbg << "{ url: " << socket->url().toString();
+    dbg << "{ uuid: " << socket->uuid().toString();
+    dbg << "; url: " << socket->url().toString();
     dbg << "; ip: " << socket->remoteAddress();
     if (socket->hasRawHeader("User-Agent")) {
         dbg << "; user_agent: " << socket->rawHeader("User-Agent");
