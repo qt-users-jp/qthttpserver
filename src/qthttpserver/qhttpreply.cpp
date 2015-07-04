@@ -25,11 +25,11 @@
  */
 
 #include "qhttpreply.h"
-
-#include <QtNetwork/QNetworkCookie>
-
 #include "qhttpconnection_p.h"
 #include "qhttprequest.h"
+#include "qhttpserver_logging.h"
+
+#include <QtNetwork/QNetworkCookie>
 
 #include <zlib.h>
 
@@ -134,18 +134,15 @@ void QHttpReply::Private::writeHeaders()
                 z.next_out = buf;
                 int ret = Z_OK;
                 while (ret == Z_OK) {
-//                    qDebug() << Q_FUNC_INFO << __LINE__ << z.avail_in << z.avail_out;
                     ret = deflate(&z, Z_FINISH);
-//                    qDebug() << Q_FUNC_INFO << __LINE__ << z.avail_in << z.avail_out << ret;
                     if (ret == Z_STREAM_END) {
                         newData.append((const char*)buf, 1024 - z.avail_out);
                         data = newData;
                         rawHeaders["Content-Encoding"] = "deflate";
                         rawHeaders["Content-Length"] = QString::number(data.length()).toUtf8();
-//                        qDebug() << "END";
                         break;
                     } else if (ret != Z_OK) {
-//                        qDebug() << Q_FUNC_INFO << __LINE__ << ret << z.msg;
+                        qhsWarning() << "deflate failed:" << ret << z.msg;
                     }
                     if (z.avail_out == 0) {
                         newData.append((const char*)buf, 1024);
@@ -154,7 +151,6 @@ void QHttpReply::Private::writeHeaders()
                     }
                 }
                 deflateEnd(&z);
-//                qDebug() << Q_FUNC_INFO << __LINE__ << newData.length();
             }
         }
     }

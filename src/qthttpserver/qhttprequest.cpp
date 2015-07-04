@@ -25,12 +25,13 @@
  */
 
 #include "qhttprequest.h"
+#include "qhttpconnection_p.h"
+#include "qhttpserver_logging.h"
 
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostAddress>
 #include <QtNetwork/QNetworkCookie>
 
-#include "qhttpconnection_p.h"
 
 class QHttpFileData::Private
 {
@@ -141,7 +142,7 @@ void QHttpRequest::Private::readyRead()
 
             QByteArray http = array.takeFirst();
             if (http != "HTTP/1.1" && http != "HTTP/1.0") {
-                qWarning() << http << "is not supported.";
+                qhsWarning() << http << "is not supported.";
                 connection->disconnectFromHost();
                 return;
             }
@@ -217,7 +218,7 @@ void QHttpRequest::Private::readyRead()
                             if (ba == multipartBoundary) {
                                 state = MultipartHeader;
                             } else {
-                                qWarning() << Q_FUNC_INFO << __LINE__ << ba << multipartBoundary;
+                                qhsWarning() << ba << multipartBoundary;
                             }
                             break;
                         case MultipartHeader:

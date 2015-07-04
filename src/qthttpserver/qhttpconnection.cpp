@@ -91,7 +91,6 @@ void QHttpConnection::Private::requestReady()
     emit q->ready(request, reply);
 
     if (request->hasRawHeader("Connection")) {
-//        qDebug() << request->rawHeader("Connection") << keepAlive;
         if (request->rawHeader("Connection") == QByteArray("Keep-Alive").toLower()) {
             if (keepAlive > 0) {
                 reply->setRawHeader("Keep-Alive", QString::fromUtf8("timeout=1, max=%1").arg(keepAlive--).toUtf8());
@@ -138,8 +137,6 @@ QHttpConnection::QHttpConnection(qintptr socketDescriptor, QObject *parent)
 
 QHttpConnection::~QHttpConnection()
 {
-//    qDebug() << d << socketDescriptor() << d->timer.elapsed();
-//    qDebug() << d->timer.elapsed();
 }
 
 const QHttpRequest *QHttpConnection::requestFor(QHttpReply *reply)

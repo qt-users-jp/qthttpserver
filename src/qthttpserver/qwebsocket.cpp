@@ -25,14 +25,14 @@
  */
 
 #include "qwebsocket.h"
+#include "qhttpconnection_p.h"
+#include "qhttpserver_logging.h"
 
 #include <QtCore/QtEndian>
 #include <QtCore/QUrl>
 #include <QtCore/QCryptographicHash>
 #include <QtNetwork/QHostAddress>
 #include <QtNetwork/QNetworkCookie>
-
-#include "qhttpconnection_p.h"
 
 class QWebSocket::Private : public QObject
 {
@@ -82,7 +82,6 @@ QWebSocket::Private::Private(QHttpConnection *c, QWebSocket *parent, const QUrl 
     , rawHeaders(rawHeaders)
     , connected(false)
 {
-//    qDebug() << Q_FUNC_INFO << __LINE__ << url << rawHeaders;
     this->url.setScheme(QLatin1String("ws"));
     remoteAddress = connection->peerAddress().toString();
     connect(connection, SIGNAL(readyRead()), this, SLOT(readyRead()));
@@ -98,7 +97,6 @@ void QWebSocket::Private::readyRead()
         while (connection->canReadLine()) {
             QByteArray line = connection->readLine();
             line = line.left(line.length() - 2);
-//            qDebug() << Q_FUNC_INFO << __LINE__ << line;
             if (line.isEmpty()) {
                 state = ReadDone;
                 emit q->ready();
@@ -163,16 +161,11 @@ void QWebSocket::Private::accept(const QByteArray &protocol)
         QByteArray key2 = rawHeaders.value("sec-websocket-key2");
         QByteArray challenge;
 
-//        qDebug() << decode(QByteArray("3 7 78B 67  5      W%89")).toHex();
         challenge.append(decode(key1));
         challenge.append(decode(key2));
         QByteArray body = connection->read(8);
-//        qDebug() << challenge.toHex() << body.toHex() << body.length();
         challenge.append(body);
-//        qDebug() << challenge.toHex();
         body = QCryptographicHash::hash(challenge, QCryptographicHash::Md5);
-//        qDebug() << body.toHex() << body.length();
-//        qDebug() << body;
         connection->write(body);
 //        connection->write("\r\n");
         connection->flush();
@@ -187,7 +180,6 @@ void QWebSocket::Private::close()
 
 QByteArray QWebSocket::Private::decode(const QByteArray &key) const
 {
-//    qDebug() << Q_FUNC_INFO << __LINE__ << key;
     QByteArray ret;
     int spaceCount = 0;
     QByteArray num;
@@ -213,77 +205,70 @@ QByteArray QWebSocket::Private::decode(const QByteArray &key) const
 
     if (spaceCount == 0) return ret;
     qulonglong value = num.toULongLong() / spaceCount;
-//    qDebug() << Q_FUNC_INFO << __LINE__ << num << spaceCount << value;
     for (int i = 0; i < 4; i++) {
-//        qDebug() << Q_FUNC_INFO << __LINE__ << value;
         char ch = value & 0xff;
-//        qDebug() << Q_FUNC_INFO << __LINE__ << QString("0x%1").arg(value & 0xff, 0, 16);
         ret.prepend(ch);
         value /= 0x100;
     }
-//    qDebug() << Q_FUNC_INFO << __LINE__ << ret;
     return ret;
 }
 
 void QWebSocket::Private::readData()
 {
-//    qDebug() << Q_FUNC_INFO << __LINE__;
     int pos = 0;
     QByteArray data = connection->readAll();
-//    qDebug() << Q_FUNC_INFO << __LINE__ << data.toHex() << data.length();
 
     if (draft && version == 0 && (unsigned char)data.at(0) == 0x00 && (unsigned char)data.at(data.length() - 1) == 0xff) {
         data = data.mid(1, data.length() - 2);
     } else {
         unsigned char firstByte = data.at(pos++);
-        qDebug() << Q_FUNC_INFO << __LINE__ << firstByte;
         bool fin = ((firstByte & 0x80) >> 7 == 1);
-        qDebug() << Q_FUNC_INFO << __LINE__ << fin;
         if (!fin) {
             message.append(data);
             return;
         }
+
+#if 0
         char opcode = (firstByte & 0x0f);
         switch (opcode) {
         case 0x0:
-            qDebug() << Q_FUNC_INFO << __LINE__ << "continuation";
+            qhsDebug() << "continuation";
             break;
         case 0x1:
-            qDebug() << Q_FUNC_INFO << __LINE__ << "text";
+            qhsDebug() << "text";
             break;
         case 0x2:
-            qDebug() << Q_FUNC_INFO << __LINE__ << "binary";
+            qhsDebug() << "binary";
             break;
         case 0x3:
         case 0x4:
         case 0x5:
         case 0x6:
         case 0x7:
-            qDebug() << Q_FUNC_INFO << __LINE__ << "reserved for further non-control frames";
+            qhsDebug() << "reserved for further non-control frames";
             break;
         case 0x8:
-            qDebug() << Q_FUNC_INFO << __LINE__ << "connection close";
+            qhsDebug() << "connection close";
             break;
         case 0x9:
-            qDebug() << Q_FUNC_INFO << __LINE__ << "ping";
+            qhsDebug() << "ping";
             break;
         case 0xA:
-            qDebug() << Q_FUNC_INFO << __LINE__ << "pong";
+            qhsDebug() << "pong";
             break;
         default:
-            qDebug() << Q_FUNC_INFO << __LINE__ << "reserved for further control frames";
+            qhsDebug() << "reserved for further control frames";
             break;
         }
-        qDebug() << Q_FUNC_INFO << __LINE__ << opcode;
+#endif
 
         unsigned char secondByte = data.at(pos++);
         bool mask = ((secondByte & 0x80) >> 7 == 1);
         if (!mask) {
-    //        qWarning() << "browse should always mask the payload data";
+    //        qhsWarning() << "browse should always mask the payload data";
     //        return;
         }
         qulonglong payloadLength = (secondByte & 0x7f);
-        qDebug() << Q_FUNC_INFO << __LINE__ << payloadLength;
         if (payloadLength == 0x7e) {
             payloadLength = 0;
             for (int j = 0; j < 2; j++) {
@@ -305,7 +290,6 @@ void QWebSocket::Private::readData()
             }
         }
     }
-//    qDebug() << Q_FUNC_INFO << __LINE__ << data;
     emit q->message(data);
 }
 
@@ -354,9 +338,7 @@ void QWebSocket::Private::send(const QByteArray &message)
 
 void QWebSocket::Private::disconnected()
 {
-    qDebug() << Q_FUNC_INFO << __LINE__ << q << sender();
     q->deleteLater();
-    qDebug() << Q_FUNC_INFO << __LINE__;
 }
 
 QWebSocket::QWebSocket(QHttpConnection *parent, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders)
