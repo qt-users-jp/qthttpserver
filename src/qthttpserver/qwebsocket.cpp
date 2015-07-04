@@ -399,4 +399,25 @@ void QWebSocket::setUrl(const QUrl &url)
     emit urlChanged(url);
 }
 
+QDebug operator<<(QDebug dbg, const QWebSocket *socket)
+{
+    if (!socket) {
+        return dbg << "QWebSocket {}";
+    }
+    QDebugStateSaver saver(dbg);
+    dbg.resetFormat();
+    dbg.nospace();
+    dbg << "QWebSocket ";
+    dbg << "{ url: " << socket->url().toString();
+    dbg << "; ip: " << socket->remoteAddress();
+    if (socket->hasRawHeader("User-Agent")) {
+        dbg << "; user_agent: " << socket->rawHeader("User-Agent");
+    }
+    if (socket->hasRawHeader("Referer")) {
+        dbg << "; referer: " << socket->rawHeader("Referer");
+    }
+    dbg << " }";
+    return dbg;
+}
+
 #include "qwebsocket.moc"

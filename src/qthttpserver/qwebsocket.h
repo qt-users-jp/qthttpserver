@@ -63,4 +63,6 @@ private:
     Private *d;
 };
 
+Q_HTTPSERVER_EXPORT QDebug operator<<(QDebug, const QWebSocket *);
+
 #endif // QWEBSOCKET_H

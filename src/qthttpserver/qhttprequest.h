@@ -83,4 +83,6 @@ private:
     Private *d;
 };
 
+Q_HTTPSERVER_EXPORT QDebug operator<<(QDebug, const QHttpRequest *);
+
 #endif // QHTTPREQUEST_H

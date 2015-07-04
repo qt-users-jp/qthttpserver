@@ -336,4 +336,26 @@ void QHttpRequest::setUrl(const QUrl &url)
     emit urlChanged(url);
 }
 
+QDebug operator<<(QDebug dbg, const QHttpRequest *request)
+{
+    if (!request) {
+        return dbg << "QHttpRequest {}";
+    }
+    QDebugStateSaver saver(dbg);
+    dbg.resetFormat();
+    dbg.nospace();
+    dbg << "QHttpRequest ";
+    dbg << "{ method: " << request->method();
+    dbg << "; url: " << request->url().toString();
+    dbg << "; ip: " << request->remoteAddress();
+    if (request->hasRawHeader("User-Agent")) {
+        dbg << "; user_agent: " << request->rawHeader("User-Agent");
+    }
+    if (request->hasRawHeader("Referer")) {
+        dbg << "; referer: " << request->rawHeader("Referer");
+    }
+    dbg << " }";
+    return dbg;
+}
+
 #include "qhttprequest.moc"
