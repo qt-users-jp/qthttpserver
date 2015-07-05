@@ -49,6 +49,7 @@ signals:
 private:
     class Private;
     Private *d;
+    Q_DISABLE_COPY(QHttpConnection)
 };
 
 #endif // QHTTPCONNECTION_H

@@ -62,6 +62,7 @@ signals:
 private:
     class Private;
     Private *d;
+    Q_DISABLE_COPY(QHttpReply)
 };
 
 #endif // QHTTPREPLY_H

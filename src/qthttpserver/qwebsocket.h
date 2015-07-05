@@ -63,6 +63,7 @@ signals:
 private:
     class Private;
     Private *d;
+    Q_DISABLE_COPY(QWebSocket)
 };
 
 Q_HTTPSERVER_EXPORT QDebug operator<<(QDebug, const QWebSocket *);

@@ -54,6 +54,7 @@ signals:
 private:
     class Private;
     Private *d;
+    Q_DISABLE_COPY(QHttpFileData)
 };
 
 class Q_HTTPSERVER_EXPORT QHttpRequest : public QBuffer
@@ -83,6 +84,7 @@ signals:
 private:
     class Private;
     Private *d;
+    Q_DISABLE_COPY(QHttpRequest)
 };
 
 Q_HTTPSERVER_EXPORT QDebug operator<<(QDebug, const QHttpRequest *);
