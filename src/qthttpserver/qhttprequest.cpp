@@ -355,7 +355,11 @@ QDebug operator<<(QDebug dbg, const QHttpRequest *request)
     dbg << "{ uuid: " << request->uuid().toString();
     dbg << "; method: " << request->method();
     dbg << "; url: " << request->url().toString();
-    dbg << "; ip: " << request->remoteAddress();
+    if (request->hasRawHeader("X-Forwarded-For")) {
+        dbg << "; ip: " << request->rawHeader("X-Forwarded-For");
+    } else {
+        dbg << "; ip: " << request->remoteAddress();
+    }
     if (request->hasRawHeader("User-Agent")) {
         dbg << "; user_agent: " << request->rawHeader("User-Agent");
     }
