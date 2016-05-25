@@ -118,7 +118,10 @@ void QHttpReply::Private::writeHeaders()
     connection->write("\r\n");
     const QHttpRequest *request = connection->requestFor(q);
     if (request && request->hasRawHeader("Accept-Encoding") && !rawHeaders.contains("Content-Encoding")) {
-        QList<QByteArray> acceptEncodings = request->rawHeader("Accept-Encoding").split(',');
+        QList<QByteArray> acceptEncodings;
+        foreach (const QByteArray &acceptEncoding, request->rawHeader("Accept-Encoding").split(',')) {
+            acceptEncodings.append(acceptEncoding.trimmed());
+        }
         if (acceptEncodings.contains("deflate")) {
             z_stream z;
             z.zalloc = NULL;
