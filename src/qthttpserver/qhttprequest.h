@@ -36,6 +36,8 @@
 class QHttpConnection;
 class QNetworkCookie;
 
+QT_BEGIN_NAMESPACE
+
 class Q_HTTPSERVER_EXPORT QHttpFileData : public QBuffer
 {
     Q_OBJECT
@@ -47,7 +49,7 @@ public:
     const QString &fileName() const;
     const QString &contentType() const;
 
-signals:
+Q_SIGNALS:
     void fileNameChanged(const QString &fileName);
     void contentTypeChanged(const QString &contentType);
 
@@ -73,10 +75,10 @@ public:
     const QList<QHttpFileData *> &files() const;
     const QUrl &url() const;
 
-public slots:
+public Q_SLOTS:
     void setUrl(const QUrl &url);
 
-signals:
+Q_SIGNALS:
     void urlChanged(const QUrl &url);
     void upgrade(const QByteArray &to, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders);
     void ready();
@@ -88,5 +90,7 @@ private:
 };
 
 Q_HTTPSERVER_EXPORT QDebug operator<<(QDebug, const QHttpRequest *);
+
+QT_END_NAMESPACE
 
 #endif // QHTTPREQUEST_H

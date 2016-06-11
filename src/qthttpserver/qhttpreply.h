@@ -34,6 +34,8 @@
 class QHttpConnection;
 class QNetworkCookie;
 
+QT_BEGIN_NAMESPACE
+
 class Q_HTTPSERVER_EXPORT QHttpReply : public QBuffer
 {
     Q_OBJECT
@@ -55,7 +57,7 @@ public:
 
     virtual void close();
 
-signals:
+Q_SIGNALS:
     void done();
     void statusChanged(int status);
 
@@ -64,5 +66,7 @@ private:
     Private *d;
     Q_DISABLE_COPY(QHttpReply)
 };
+
+QT_END_NAMESPACE
 
 #endif // QHTTPREPLY_H

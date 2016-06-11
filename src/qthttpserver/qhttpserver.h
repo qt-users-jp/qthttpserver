@@ -36,6 +36,8 @@ class QHttpRequest;
 class QHttpReply;
 class QWebSocket;
 
+QT_BEGIN_NAMESPACE
+
 class Q_HTTPSERVER_EXPORT QHttpServer : public QObject
 {
     Q_OBJECT
@@ -57,7 +59,7 @@ public:
     QAbstractSocket::SocketError serverError() const;
     QString errorString() const;
 
-signals:
+Q_SIGNALS:
     void maxPendingConnectionsChanged(int maxPendingConnections);
 
     void incomingConnection(QHttpRequest *request, QHttpReply *reply);
@@ -68,5 +70,7 @@ private:
     Private *d;
     Q_DISABLE_COPY(QHttpServer)
 };
+
+QT_END_NAMESPACE
 
 #endif // QHTTPSERVER_H

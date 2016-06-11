@@ -34,6 +34,8 @@
 class QHttpConnection;
 class QNetworkCookie;
 
+QT_BEGIN_NAMESPACE
+
 class Q_HTTPSERVER_EXPORT QWebSocket : public QObject
 {
     Q_OBJECT
@@ -48,14 +50,14 @@ public:
     const QList<QNetworkCookie> &cookies() const;
     const QUrl &url() const;
 
-public slots:
+public Q_SLOTS:
     void accept(const QByteArray &protocol = QByteArray());
     void close();
     void send(const QByteArray &message);
 
     void setUrl(const QUrl &url);
 
-signals:
+Q_SIGNALS:
     void urlChanged(const QUrl &url);
     void ready();
     void message(const QByteArray &message);
@@ -67,5 +69,7 @@ private:
 };
 
 Q_HTTPSERVER_EXPORT QDebug operator<<(QDebug, const QWebSocket *);
+
+QT_END_NAMESPACE
 
 #endif // QWEBSOCKET_H
