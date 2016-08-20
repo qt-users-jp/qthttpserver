@@ -43,7 +43,7 @@ class Q_HTTPSERVER_EXPORT QHttpServer : public QObject
     Q_OBJECT
     Q_PROPERTY(int maxPendingConnections READ maxPendingConnections WRITE setMaxPendingConnections NOTIFY maxPendingConnectionsChanged)
 public:
-    explicit QHttpServer(QObject *parent = 0);
+    explicit QHttpServer(QObject *parent = Q_NULLPTR);
 
     bool listen(const QHostAddress &address = QHostAddress::Any, quint16 port = 0);
     void close();

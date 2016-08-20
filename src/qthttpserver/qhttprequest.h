@@ -44,7 +44,7 @@ class Q_HTTPSERVER_EXPORT QHttpFileData : public QBuffer
     Q_PROPERTY(QString fileName READ fileName NOTIFY fileNameChanged)
     Q_PROPERTY(QString contentType READ contentType NOTIFY contentTypeChanged)
 public:
-    QHttpFileData(const QHash<QByteArray, QByteArray> &rawHeaders, const QByteArray &data, QObject *parent = 0);
+    QHttpFileData(const QHash<QByteArray, QByteArray> &rawHeaders, const QByteArray &data, QObject *parent = Q_NULLPTR);
     ~QHttpFileData();
     const QString &fileName() const;
     const QString &contentType() const;
