@@ -1,1 +1,0 @@
-include(./qthttpserver/include.pri)
