@@ -46,6 +46,7 @@ public slots:
 private:
     QHttpReply *q;
     static QHash<int, QByteArray> statusCodes;
+    QByteArray zlibEncodeData(const QByteArray &source, const QList<QByteArray> &acceptencodings) const;
 
 public:
     QHttpConnection *connection;
@@ -122,39 +123,8 @@ void QHttpReply::Private::writeHeaders()
         foreach (const QByteArray &acceptEncoding, request->rawHeader("Accept-Encoding").split(',')) {
             acceptEncodings.append(acceptEncoding.trimmed());
         }
-        if (acceptEncodings.contains("deflate")) {
-            z_stream z;
-            z.zalloc = NULL;
-            z.zfree = NULL;
-            z.opaque = NULL;
-
-            if (deflateInit(&z, Z_DEFAULT_COMPRESSION) == Z_OK) {
-                QByteArray newData;
-                unsigned char buf[1024];
-                z.avail_in = data.size();
-                z.next_in = reinterpret_cast<Bytef*>(data.data());
-                z.avail_out = 1024;
-                z.next_out = buf;
-                int ret = Z_OK;
-                while (ret == Z_OK) {
-                    ret = deflate(&z, Z_FINISH);
-                    if (ret == Z_STREAM_END) {
-                        newData.append((const char*)buf, 1024 - z.avail_out);
-                        data = newData;
-                        rawHeaders["Content-Encoding"] = "deflate";
-                        rawHeaders["Content-Length"] = QString::number(data.length()).toUtf8();
-                        break;
-                    } else if (ret != Z_OK) {
-                        qhsWarning() << "deflate failed:" << ret << z.msg;
-                    }
-                    if (z.avail_out == 0) {
-                        newData.append((const char*)buf, 1024);
-                        z.avail_out = 1024;
-                        z.next_out = buf;
-                    }
-                }
-                deflateEnd(&z);
-            }
+        if (!acceptEncodings.isEmpty()) {
+            data = zlibEncodeData(data, acceptEncodings);
         }
     }
 
@@ -250,6 +220,56 @@ void QHttpReply::close()
 //    QMetaObject::invokeMethod(d, "close", Qt::QueuedConnection);
     d->writeHeaders();
     d->writeBody();
+}
+
+QByteArray QHttpReply::Private::zlibEncodeData(const QByteArray &source, const QList<QByteArray> &acceptencodings) const
+{
+    z_stream z;
+    z.zalloc = NULL;
+    z.zfree = NULL;
+    z.opaque = NULL;
+
+    int status = Z_STREAM_ERROR;
+    QByteArray encoding;
+    QByteArray ret = source;
+
+    if (acceptencodings.contains("gzip")) {
+        encoding = "gzip";
+        status = deflateInit2(&z, Z_DEFAULT_COMPRESSION, Z_DEFLATED, 31, 8, Z_DEFAULT_STRATEGY);
+    } else if (acceptencodings.contains("deflate")) {
+        encoding = "deflate";
+        status = deflateInit(&z, Z_DEFAULT_COMPRESSION);
+    }
+
+    if (status == Z_OK) {
+        QByteArray sourceData = source;
+        unsigned char buf[1024];
+
+        ret.clear();
+        z.avail_in = sourceData.size();
+        z.next_in = reinterpret_cast<Bytef*>(sourceData.data());
+        z.avail_out = 1024;
+        z.next_out = buf;
+
+        while (status == Z_OK) {
+            status = deflate(&z, Z_FINISH);
+            if (status == Z_STREAM_END) {
+                ret.append((const char*)buf, 1024 - z.avail_out);
+                q->setRawHeader("Content-Encoding", encoding);
+                q->setRawHeader("Content-Length", QString::number(ret.length()).toUtf8());
+                break;
+            } else if (status != Z_OK) {
+                qhsWarning() << "data encoding [" << QString::fromUtf8(encoding) << "] failed:" << status << z.msg;
+            }
+            if (z.avail_out == 0) {
+                ret.append((const char*)buf, 1024);
+                z.avail_out = 1024;
+                z.next_out = buf;
+            }
+        }
+        deflateEnd(&z);
+    }
+    return ret;
 }
 
 #include "qhttpreply.moc"
