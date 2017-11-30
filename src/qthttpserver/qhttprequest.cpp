@@ -123,7 +123,7 @@ QHttpRequest::Private::Private(QHttpConnection *c, QHttpRequest *parent)
     connect(connection, SIGNAL(disconnected()), this, SLOT(disconnected()));
     q->setBuffer(&data);
     q->open(QIODevice::ReadOnly);
-    QMetaObject::invokeMethod(this, "readyRead", Qt::QueuedConnection);
+//    QMetaObject::invokeMethod(this, "readyRead", Qt::QueuedConnection);
 }
 
 void QHttpRequest::Private::readyRead()
@@ -134,7 +134,11 @@ void QHttpRequest::Private::readyRead()
             QByteArray line = connection->readLine();
             line = line.left(line.length() - 2);
             QList<QByteArray> array = line.split(' ');
-
+            if (array.length() != 3) {
+                qhsWarning() << "unknown request:" << array;
+                connection->disconnectFromHost();
+                return;
+            }
             method = array.takeFirst();
 
             QString path = QString::fromUtf8(array.takeFirst());
