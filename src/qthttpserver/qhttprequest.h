@@ -29,12 +29,9 @@
 
 #include <QtCore/QBuffer>
 #include <QtCore/QVariant>
-#include <QtCore/QUuid>
 
 #include "qthttpserverglobal.h"
-
-class QHttpConnection;
-class QNetworkCookie;
+#include "qabstractrequest.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -59,20 +56,15 @@ private:
     Q_DISABLE_COPY(QHttpFileData)
 };
 
-class Q_HTTPSERVER_EXPORT QHttpRequest : public QBuffer
+class Q_HTTPSERVER_EXPORT QHttpRequest : public QBuffer, public QAbstractRequest
 {
     Q_OBJECT
 public:
     explicit QHttpRequest(QHttpConnection *parent);
 
-    const QUuid &uuid() const;
-    const QString &remoteAddress() const;
     const QByteArray &method() const;
-    bool hasRawHeader(const QByteArray &headerName) const;
-    QByteArray rawHeader(const QByteArray &headerName) const;
-    QList<QByteArray> rawHeaderList() const;
-    const QList<QNetworkCookie> &cookies() const;
     const QList<QHttpFileData *> &files() const;
+
     const QUrl &url() const;
 
 public Q_SLOTS:

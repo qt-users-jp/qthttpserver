@@ -4,6 +4,7 @@ QT += network
 
 SOURCES += \
     $$PWD/qhttpserver.cpp \
+    $$PWD/qabstractrequest.cpp \
     $$PWD/qhttprequest.cpp \
     $$PWD/qhttpconnection.cpp \
     $$PWD/qhttpreply.cpp \
@@ -13,6 +14,7 @@ SOURCES += \
 HEADERS += \
     $$PWD/qthttpserverglobal.h \
     $$PWD/qhttpserver.h \
+    $$PWD/qabstractrequest.h \
     $$PWD/qhttprequest.h \
     $$PWD/qhttpreply.h \
     $$PWD/qwebsocket.h \

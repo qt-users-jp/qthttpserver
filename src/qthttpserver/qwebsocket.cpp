@@ -42,7 +42,7 @@ public:
         ReadHeaders
         , ReadDone
     };
-    Private(QHttpConnection *c, QWebSocket *parent, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders);
+    Private(QWebSocket *parent, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders);
     void accept(const QByteArray &protocol);
     void close();
     void send(const QByteArray &message);
@@ -61,39 +61,30 @@ private:
     int version;
 
 public:
-    QHttpConnection *connection;
-    QUuid uuid;
-    QString remoteAddress;
-    ReadState state;
     QUrl url;
-    QHash<QByteArray, QByteArray> rawHeaders;
-    QList<QNetworkCookie> cookies;
+    ReadState state;
     bool connected;
     QByteArray message;
 };
 
-QWebSocket::Private::Private(QHttpConnection *c, QWebSocket *parent, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders)
+QWebSocket::Private::Private(QWebSocket *parent, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders)
     : QObject(parent)
     , q(parent)
     , draft(true)
     , version(17)
-    , connection(c)
-    , uuid(QUuid::createUuid())
-    , remoteAddress(connection->peerAddress().toString())
-    , state(ReadHeaders)
     , url(url)
-    , rawHeaders(rawHeaders)
+    , state(ReadHeaders)
     , connected(false)
 {
     this->url.setScheme(QLatin1String("ws"));
-    connect(connection, SIGNAL(readyRead()), this, SLOT(readyRead()));
-    connect(connection, SIGNAL(disconnected()), this, SLOT(disconnected()));
-    QMetaObject::invokeMethod(this, "readyRead", Qt::QueuedConnection);
-    connect(this, SIGNAL(destroyed()), connection, SLOT(deleteLater()));
+    connect(q->connection(), SIGNAL(readyRead()), this, SLOT(readyRead()));
+    connect(q->connection(), SIGNAL(disconnected()), this, SLOT(disconnected()));
+    connect(this, SIGNAL(destroyed()), q->connection(), SLOT(deleteLater()));
 }
 
 void QWebSocket::Private::readyRead()
 {
+    QHttpConnection *connection = q->connection();
     switch (state) {
     case ReadHeaders:
         while (connection->canReadLine()) {
@@ -120,10 +111,10 @@ void QWebSocket::Private::readyRead()
                     }
                 } else if (name == "Cookie") {
                     foreach (const QByteArray &c, value.split(';')) {
-                        cookies.append(QNetworkCookie::parseCookies(c));
+                        q->addCookie(QNetworkCookie::parseCookies(c));
                     }
                 } else {
-                    rawHeaders.insert(name.toLower(), value);
+                    q->insertRawHeader(name.toLower(), value);
                 }
             }
         }
@@ -139,28 +130,29 @@ void QWebSocket::Private::readyRead()
 
 void QWebSocket::Private::accept(const QByteArray &protocol)
 {
+    QHttpConnection *connection = q->connection();
 //    connection->write("HTTP/1.1 101 Switching Protocols\r\n");
     connection->write("HTTP/1.1 101 Web Socket Protocol Handshake\r\n");
     connection->write("Upgrade: WebSocket\r\n");
     connection->write("Connection: Upgrade\r\n");
 
-    if (rawHeaders.contains("sec-websocket-key")) {
-        QByteArray key = rawHeaders.value("sec-websocket-key");
+    if (q->hasRawHeader("sec-websocket-key")) {
+        QByteArray key = q->rawHeader("sec-websocket-key");
         key.append("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
         key = QCryptographicHash::hash(key, QCryptographicHash::Sha1);
         key = key.toBase64();
         connection->write("Sec-WebSocket-Accept: " + key + "\r\n");
     }
-    connection->write("Sec-WebSocket-Origin: " + rawHeaders.value("origin") + "\r\n");
+    connection->write("Sec-WebSocket-Origin: " + q->rawHeader("origin") + "\r\n");
     connection->write("Sec-WebSocket-Location: " + url.toString().toUtf8() + "\r\n");
     if (!protocol.isNull()) {
         connection->write("Sec-WebSocket-Protocol: " + protocol + "\r\n");
     }
     connection->write("\r\n");
-    if (rawHeaders.contains("sec-websocket-key1") && rawHeaders.contains("sec-websocket-key2")) {
+    if (q->hasRawHeader("sec-websocket-key1") && q->hasRawHeader("sec-websocket-key2")) {
         version = 0;
-        QByteArray key1 = rawHeaders.value("sec-websocket-key1");
-        QByteArray key2 = rawHeaders.value("sec-websocket-key2");
+        QByteArray key1 = q->rawHeader("sec-websocket-key1");
+        QByteArray key2 = q->rawHeader("sec-websocket-key2");
         QByteArray challenge;
 
         challenge.append(decode(key1));
@@ -177,7 +169,7 @@ void QWebSocket::Private::accept(const QByteArray &protocol)
 
 void QWebSocket::Private::close()
 {
-    connection->disconnectFromHost();
+    q->connection()->disconnectFromHost();
 }
 
 QByteArray QWebSocket::Private::decode(const QByteArray &key) const
@@ -218,7 +210,7 @@ QByteArray QWebSocket::Private::decode(const QByteArray &key) const
 void QWebSocket::Private::readData()
 {
     int pos = 0;
-    QByteArray data = connection->readAll();
+    QByteArray data = q->connection()->readAll();
 
     if (draft && version == 0 && (unsigned char)data.at(0) == 0x00 && (unsigned char)data.at(data.length() - 1) == 0xff) {
         data = data.mid(1, data.length() - 2);
@@ -333,8 +325,8 @@ void QWebSocket::Private::send(const QByteArray &message)
         }
         data.append(message);
     }
-    connection->write(data);
-    connection->flush();
+    q->connection()->write(data);
+    q->connection()->flush();
 }
 
 
@@ -345,38 +337,9 @@ void QWebSocket::Private::disconnected()
 
 QWebSocket::QWebSocket(QHttpConnection *parent, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders)
     : QObject(parent)
-    , d(new Private(parent, this, url, rawHeaders))
+    , QAbstractRequest(parent)
+    , d(new Private(this, url, rawHeaders))
 {
-}
-
-const QUuid &QWebSocket::uuid() const
-{
-    return d->uuid;
-}
-
-const QString &QWebSocket::remoteAddress() const
-{
-    return d->remoteAddress;
-}
-
-bool QWebSocket::hasRawHeader(const QByteArray &headerName) const
-{
-    return d->rawHeaders.contains(headerName.toLower());
-}
-
-QByteArray QWebSocket::rawHeader(const QByteArray &headerName) const
-{
-    return d->rawHeaders.value(headerName.toLower());
-}
-
-QList<QByteArray> QWebSocket::rawHeaderList() const
-{
-    return d->rawHeaders.keys();
-}
-
-const QList<QNetworkCookie> &QWebSocket::cookies() const
-{
-    return d->cookies;
 }
 
 const QUrl &QWebSocket::url() const

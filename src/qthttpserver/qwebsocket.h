@@ -28,26 +28,17 @@
 #define QWEBSOCKET_H
 
 #include <QtCore/QObject>
-#include <QtCore/QUuid>
 #include "qthttpserverglobal.h"
-
-class QHttpConnection;
-class QNetworkCookie;
+#include "qabstractrequest.h"
 
 QT_BEGIN_NAMESPACE
 
-class Q_HTTPSERVER_EXPORT QWebSocket : public QObject
+class Q_HTTPSERVER_EXPORT QWebSocket : public QObject, public QAbstractRequest
 {
     Q_OBJECT
 public:
     explicit QWebSocket(QHttpConnection *parent, const QUrl &url, const QHash<QByteArray, QByteArray> &rawHeaders);
     
-    const QUuid &uuid() const;
-    const QString &remoteAddress() const;
-    bool hasRawHeader(const QByteArray &headerName) const;
-    QByteArray rawHeader(const QByteArray &headerName) const;
-    QList<QByteArray> rawHeaderList() const;
-    const QList<QNetworkCookie> &cookies() const;
     const QUrl &url() const;
 
 public Q_SLOTS:

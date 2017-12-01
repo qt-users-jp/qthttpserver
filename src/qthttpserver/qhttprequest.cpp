@@ -25,13 +25,8 @@
  */
 
 #include "qhttprequest.h"
-#include "qhttpconnection_p.h"
 #include "qhttpserver_logging.h"
-
-#include <QtCore/QUrl>
-#include <QtNetwork/QHostAddress>
-#include <QtNetwork/QNetworkCookie>
-
+#include "qhttpconnection_p.h"
 
 class QHttpFileData::Private
 {
@@ -88,7 +83,7 @@ public:
         , ReadDone
     };
 
-    Private(QHttpConnection *c, QHttpRequest *parent);
+    Private(QHttpRequest *parent);
 
 private slots:
     void readyRead();
@@ -98,36 +93,28 @@ private:
     QHttpRequest *q;
 
 public:
-    QHttpConnection *connection;
-    QUuid uuid;
-    QString remoteAddress;
+    QUrl url;
     ReadState state;
     QByteArray method;
-    QUrl url;
-    QHash<QByteArray, QByteArray> rawHeaders;
-    QList<QNetworkCookie> cookies;
     QByteArray data;
     QByteArray multipartBoundary;
     QList<QHttpFileData *> files;
 };
 
-QHttpRequest::Private::Private(QHttpConnection *c, QHttpRequest *parent)
+QHttpRequest::Private::Private(QHttpRequest *parent)
     : QObject(parent)
     , q(parent)
-    , connection(c)
-    , uuid(QUuid::createUuid())
-    , remoteAddress(connection->peerAddress().toString())
     , state(ReadUrl)
 {
-    connect(connection, SIGNAL(readyRead()), this, SLOT(readyRead()));
-    connect(connection, SIGNAL(disconnected()), this, SLOT(disconnected()));
+    connect(q->connection(), SIGNAL(readyRead()), this, SLOT(readyRead()));
+    connect(q->connection(), SIGNAL(disconnected()), this, SLOT(disconnected()));
     q->setBuffer(&data);
     q->open(QIODevice::ReadOnly);
-//    QMetaObject::invokeMethod(this, "readyRead", Qt::QueuedConnection);
 }
 
 void QHttpRequest::Private::readyRead()
 {
+    QHttpConnection *connection = q->connection();
     switch (state) {
     case ReadUrl:
         if (connection->canReadLine()) {
@@ -177,7 +164,7 @@ void QHttpRequest::Private::readyRead()
                 QByteArray value = line.mid(space + 1);
                 if (name == "Upgrade") {
                     disconnect(connection, 0, this, 0);
-                    emit q->upgrade(value, url, rawHeaders);
+                    emit q->upgrade(value, url, q->rawHeaders());
                     return;
                 } else if (name == "Host") {
                     int colon = value.indexOf(':');
@@ -190,20 +177,20 @@ void QHttpRequest::Private::readyRead()
                     }
                 } else if (name == "Cookie") {
                     foreach (const QByteArray &c, value.split(';')) {
-                        cookies.append(QNetworkCookie::parseCookies(c));
+                        q->addCookie(QNetworkCookie::parseCookies(c));
                     }
                 } else if (name == "Content-Type") {
                     QList<QByteArray> fields = value.split(';');
                     QByteArray boundary(" boundary=");
                     if (fields.first().toLower() == "multipart/form-data" && fields.length() == 2 && fields.at(1).startsWith(boundary)) {
-                        rawHeaders.insert(name.toLower(), fields.takeFirst().toLower());
+                        q->insertRawHeader(name.toLower(), fields.takeFirst().toLower());
                         multipartBoundary = fields.takeFirst().mid(boundary.length());
                         multipartBoundary.prepend("--");
                     } else {
-                        rawHeaders.insert(name.toLower(), value);
+                        q->insertRawHeader(name.toLower(), value);
                     }
                 } else {
-                    rawHeaders.insert(name.toLower(), value);
+                    q->insertRawHeader(name.toLower(), value);
                 }
             }
         }
@@ -242,7 +229,7 @@ void QHttpRequest::Private::readyRead()
                                 if (multipartRawHeaders.contains("Content-Type")) {
                                     if (multipartData.size() > 0
                                             && multipartRawHeaders.contains("Content-Disposition")
-                                            && !rawHeaders.value("Content-Disposition").contains("filename=\"\"")) {
+                                            && !q->rawHeader("Content-Disposition").contains("filename=\"\"")) {
                                         files.append(new QHttpFileData(multipartRawHeaders, multipartData, this));
                                     }
                                 } else {
@@ -291,48 +278,9 @@ void QHttpRequest::Private::disconnected()
 
 QHttpRequest::QHttpRequest(QHttpConnection *parent)
     : QBuffer(parent)
-    , d(new Private(parent, this))
+    , QAbstractRequest(parent)
+    , d(new Private(this))
 {
-}
-
-const QUuid &QHttpRequest::uuid() const
-{
-    return d->uuid;
-}
-
-const QString &QHttpRequest::remoteAddress() const
-{
-    return d->remoteAddress;
-}
-
-const QByteArray &QHttpRequest::method() const
-{
-    return d->method;
-}
-
-bool QHttpRequest::hasRawHeader(const QByteArray &headerName) const
-{
-    return d->rawHeaders.contains(headerName.toLower());
-}
-
-QByteArray QHttpRequest::rawHeader(const QByteArray &headerName) const
-{
-    return d->rawHeaders.value(headerName.toLower());
-}
-
-QList<QByteArray> QHttpRequest::rawHeaderList() const
-{
-    return d->rawHeaders.keys();
-}
-
-const QList<QNetworkCookie> &QHttpRequest::cookies() const
-{
-    return d->cookies;
-}
-
-const QList<QHttpFileData *> &QHttpRequest::files() const
-{
-    return d->files;
 }
 
 const QUrl &QHttpRequest::url() const
@@ -345,6 +293,16 @@ void QHttpRequest::setUrl(const QUrl &url)
     if (d->url == url) return;
     d->url = url;
     emit urlChanged(url);
+}
+
+const QByteArray &QHttpRequest::method() const
+{
+    return d->method;
+}
+
+const QList<QHttpFileData *> &QHttpRequest::files() const
+{
+    return d->files;
 }
 
 QDebug operator<<(QDebug dbg, const QHttpRequest *request)
