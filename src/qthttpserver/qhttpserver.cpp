@@ -34,7 +34,7 @@ class QHttpServer::Private : public QTcpServer
 {
     Q_OBJECT
 public:
-    Private(QHttpServer *parent);
+    explicit Private(QHttpServer *parent);
 
 protected:
     void incomingConnection(qintptr socketDescriptor);

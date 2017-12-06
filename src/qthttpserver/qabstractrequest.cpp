@@ -7,7 +7,7 @@
 class QAbstractRequest::Private
 {
 public:
-    Private(QHttpConnection *connection);
+    explicit Private(QHttpConnection *connection);
 
     QHttpConnection *connection;
     QUuid uuid;

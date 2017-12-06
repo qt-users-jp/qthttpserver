@@ -83,7 +83,7 @@ public:
         , ReadDone
     };
 
-    Private(QHttpRequest *parent);
+    explicit Private(QHttpRequest *parent);
 
 private slots:
     void readyRead();
